@@ -58,6 +58,30 @@ export default function ProfileScreen() {
     setLista(lista.includes(item) ? lista.filter(i => i !== item) : [...lista, item]);
   };
 
+  const mapearTitulo = (titulo: string) => {
+    switch (titulo) {
+      case 'Empregada doméstica': return 'empregada_domestica';
+      case 'Cozinheira': return 'cozinheira_fixa';
+      case 'Babá': return 'baba';
+      case 'Diarista': return 'diarista';
+      case 'Empregada + Cozinheira': return 'cozinheira_diarista';
+      case 'Cuidadora de idosos': return 'empregada_domestica';
+      default: return 'empregada_domestica';
+    }
+  };
+
+  const mapearDetergente = (val: string) => {
+    if (val === 'empregador') return 'fornece';
+    if (val === 'proprio') return 'traz_seus';
+    return 'negociar';
+  };
+
+  const mapearRefeicoes = (val: string) => {
+    if (val === 'todas') return 'oferece';
+    if (val === 'nenhuma') return 'nao_oferece';
+    return 'negociar';
+  };
+
   const guardarPerfil = async () => {
     setLoading(true);
     try {
@@ -75,17 +99,17 @@ export default function ProfileScreen() {
 
       const { error } = await supabase.from('perfis_trabalhadoras').upsert({
         utilizador_id: user.id,
-        tipo_trabalhadora: tipoTitulo,
+        tipo_trabalhadora: mapearTitulo(tipoTitulo),
         regime_trabalho: regime,
         hora_entrada: horarioEntrada || null,
         hora_saida: horarioSaida || null,
         salario_minimo: salarioMin ? parseInt(salarioMin) : null,
         salario_maximo: salarioMax ? parseInt(salarioMax) : null,
         quarto_individual: quartoIndividual,
-        refeicoes_opcao: refeicoes,
+        refeicoes_opcao: mapearRefeicoes(refeicoes),
         aceita_animais: aceitaAnimais === 'sim' ? true : aceitaAnimais === 'nao' ? false : null,
-        detergente_limpeza_opcao: detergenteLimpeza,
-        detergente_roupa_opcao: detergenteRoupa,
+        detergente_limpeza_opcao: mapearDetergente(detergenteLimpeza),
+        detergente_roupa_opcao: mapearDetergente(detergenteRoupa),
         idiomas: idiomas,
         actualizado_em: new Date().toISOString(),
       });

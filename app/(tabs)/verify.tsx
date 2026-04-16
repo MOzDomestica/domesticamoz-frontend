@@ -29,32 +29,18 @@ export default function VerifyScreen() {
         return;
       }
 
-      // Guardar sessão e tipo de utilizador
+      if (data.session) {
+        // Guardar sessão explicitamente
+        await supabase.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+        });
+      }
+
       if (data.user) {
         const tipoUser = await AsyncStorage.getItem('tipoUser') || 'trabalhadora';
+        await AsyncStorage.setItem('tipoUser', tipoUser);
 
-        // Verificar se já tem perfil na base de dados
-        const { data: utilizador } = await supabase
-          .from('utilizadores')
-          .select('id, tipo')
-          .eq('id', data.user.id)
-          .single();
-
-        if (!utilizador) {
-          // Primeiro login — criar registo na tabela utilizadores
-          await supabase.from('utilizadores').insert({
-            id: data.user.id,
-            tipo: tipoUser,
-            numero_telemovel: phone as string,
-            criado_em: new Date().toISOString(),
-            actualizado_em: new Date().toISOString(),
-          });
-        }
-
-        // Guardar tipo no AsyncStorage
-        await AsyncStorage.setItem('tipoUser', utilizador?.tipo || tipoUser);
-
-        // Redirecionar conforme tipo
         if (tipoUser === 'empregador') {
           router.push('/(tabs)/employer');
         } else {

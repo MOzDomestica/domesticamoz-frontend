@@ -601,7 +601,7 @@ export default function EmployerScreen() {
               else publicar();
             }}>
             <Text style={styles.btnAvancarText}>
-              {etapa === 3 ? (loading ? 'A publicar...' : '✓ Publicar anúncio') : 'Seguinte →'}
+              {etapa === 3 ? (loading ? 'A publicar...' : '✓ Publicar anúncio') : 'Seguinte >'}
             </Text>
           </TouchableOpacity>
         </View>
