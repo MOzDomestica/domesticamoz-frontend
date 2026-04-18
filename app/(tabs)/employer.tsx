@@ -16,7 +16,6 @@ export default function EmployerScreen() {
   const [etapa, setEtapa] = useState(1);
   const [loading, setLoading] = useState(false);
 
-  // Etapa 1 — Casa
   const [nome, setNome] = useState('');
   const [provincia, setProvincia] = useState('');
   const [distrito, setDistrito] = useState('');
@@ -26,7 +25,6 @@ export default function EmployerScreen() {
   const [numeroCriancas, setNumeroCriancas] = useState('');
   const [numeroIdosos, setNumeroIdosos] = useState('');
 
-  // Etapa 2 — Serviços
   const [servicos, setServicos] = useState<string[]>([]);
   const [tipoContrato, setTipoContrato] = useState('');
   const [regime, setRegime] = useState('');
@@ -41,33 +39,23 @@ export default function EmployerScreen() {
   const [refeicoes, setRefeicoes] = useState('');
   const [saidaFimSemana, setSaidaFimSemana] = useState(false);
 
-  // Etapa 3 — Condições dinâmicas
   const [temAnimais, setTemAnimais] = useState('');
   const [disponibilidade, setDisponibilidade] = useState('');
   const [notasExtras, setNotasExtras] = useState('');
-
-  // Limpeza
   const [forneceDetergentelimpeza, setForneceDetergentelimpeza] = useState('');
-  // Roupa
   const [forneceDetergenteRoupa, setForneceDetergenteRoupa] = useState('');
-  // Passar roupa
   const [temFerro, setTemFerro] = useState('');
   const [tipoRoupa, setTipoRoupa] = useState('');
-  // Cozinha
   const [forneceIngredientes, setForneceIngredientes] = useState('');
   const [temDietaEspecial, setTemDietaEspecial] = useState('');
   const [fazEventos, setFazEventos] = useState('');
-  // Crianças
   const [idadeCriancas, setIdadeCriancas] = useState('');
   const [precisaApoioEscolar, setPrecisaApoioEscolar] = useState('');
   const [levaPasSeios, setLevaPasseios] = useState('');
-  // Idosos
   const [mobilidadeIdoso, setMobilidadeIdoso] = useState('');
   const [gestaomedicacao, setGestaomedicacao] = useState('');
-  // Jardinagem
   const [forneceFerramentas, setForneceFerramentas] = useState('');
   const [tamanhoJardim, setTamanhoJardim] = useState('');
-  // Condução
   const [temViatura, setTemViatura] = useState('');
   const [pagaCombustivel, setPagaCombustivel] = useState('');
 
@@ -99,28 +87,33 @@ export default function EmployerScreen() {
         return;
       }
 
-      const { error } = await supabase.from('empregadores').upsert({
-        user_id: user.id,
-        nome, provincia, distrito, bairro,
-        tipo_residencia: tipoResidencia,
-        numero_pessoas: numeroPessoas,
-        servicos,
-        regime,
-        horario_tipo: horarioTipo,
-        horario_entrada: horarioEntrada,
-        horario_saida: horarioSaida,
-        dias_trabalhados: diasTrabalhados,
-        salario_min: parseInt(salarioMin) || 0,
-        salario_max: parseInt(salarioMax) || 0,
-        salario_negociavel: salarioNegociavel,
-        tem_animais: temAnimais,
-        quarto_disponivel: quartoDisponivel,
-        refeicoes,
-        fornece_detergente_limpeza: forneceDetergentelimpeza,
-        fornece_detergente_roupa: forneceDetergenteRoupa,
-        disponibilidade,
-        notas_extras: notasExtras,
-      }, { onConflict: 'user_id' });
+      const diasArray = DIAS.map(d => diasTrabalhados.includes(d));
+
+      let tipoTrabalhadora = 'empregada_domestica';
+      if (tem('Cuidar de crianças') && !tem('Limpeza geral')) tipoTrabalhadora = 'baba';
+      else if (tem('Cozinha') && !tem('Limpeza geral')) tipoTrabalhadora = 'cozinheira';
+
+      const { error } = await supabase.from('anuncios_empregadores').insert({
+        utilizador_id: user.id,
+        descricao_interna: nome || 'Anúncio sem título',
+        tipo_trabalhadora: tipoTrabalhadora,
+        estado: 'activo',
+        regime_pretendido: regime || 'nao_residente',
+        hora_entrada: horarioEntrada || null,
+        hora_entrada_opcao: 'negociar',
+        hora_saida: horarioSaida || null,
+        hora_saida_opcao: 'negociar',
+        dias_necessarios: diasArray,
+        salario_minimo: parseInt(salarioMin) || null,
+        salario_maximo: parseInt(salarioMax) || null,
+        refeicoes_opcao: 'negociar',
+        transporte_opcao: 'negociar',
+        tem_animais: temAnimais === 'sim',
+        tem_quarto_disponivel: quartoDisponivel,
+        detergente_limpeza_opcao: forneceDetergentelimpeza === 'sim' ? 'fornece' : forneceDetergentelimpeza === 'nao' ? 'nao_fornece' : forneceDetergentelimpeza === 'negociar' ? 'negociar' : null,
+        detergente_roupa_opcao: forneceDetergenteRoupa === 'sim' ? 'fornece' : forneceDetergenteRoupa === 'nao' ? 'nao_fornece' : forneceDetergenteRoupa === 'negociar' ? 'negociar' : null,
+        ingredientes_opcao: forneceIngredientes === 'sim' ? 'fornece' : forneceIngredientes === 'nao' ? 'nao_fornece' : forneceIngredientes === 'negociar' ? 'negociar' : null,
+      });
 
       if (error) {
         Alert.alert('Erro', error.message);
@@ -140,8 +133,6 @@ export default function EmployerScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: '#f5f5f0' }}>
-
-      {/* BARRA DE PROGRESSO */}
       <View style={styles.progressBar}>
         {[1, 2, 3].map(n => (
           <View key={n} style={styles.progressStep}>
@@ -155,7 +146,6 @@ export default function EmployerScreen() {
 
       <ScrollView contentContainerStyle={styles.container}>
 
-        {/* ── ETAPA 1: CASA ── */}
         {etapa === 1 && (
           <View>
             <Text style={styles.etapaTitulo}>Sobre a sua casa</Text>
@@ -215,7 +205,6 @@ export default function EmployerScreen() {
           </View>
         )}
 
-        {/* ── ETAPA 2: SERVIÇOS E REGIME ── */}
         {etapa === 2 && (
           <View>
             <Text style={styles.etapaTitulo}>Serviços e condições</Text>
@@ -340,13 +329,11 @@ export default function EmployerScreen() {
           </View>
         )}
 
-        {/* ── ETAPA 3: CONDIÇÕES DINÂMICAS ── */}
         {etapa === 3 && (
           <View>
             <Text style={styles.etapaTitulo}>Condições específicas</Text>
             <Text style={styles.etapaDesc}>Baseado nos serviços que escolheu</Text>
 
-            {/* LIMPEZA GERAL */}
             {tem('Limpeza geral') && (
               <View style={styles.blocoServico}>
                 <Text style={styles.blocoTitulo}>🧹 Limpeza geral</Text>
@@ -362,7 +349,6 @@ export default function EmployerScreen() {
               </View>
             )}
 
-            {/* LAVAR ROUPA */}
             {tem('Lavar roupa') && (
               <View style={styles.blocoServico}>
                 <Text style={styles.blocoTitulo}>👕 Lavar roupa</Text>
@@ -378,7 +364,6 @@ export default function EmployerScreen() {
               </View>
             )}
 
-            {/* PASSAR ROUPA */}
             {tem('Passar roupa') && (
               <View style={styles.blocoServico}>
                 <Text style={styles.blocoTitulo}>🔥 Passar roupa</Text>
@@ -403,7 +388,6 @@ export default function EmployerScreen() {
               </View>
             )}
 
-            {/* COZINHA */}
             {tem('Cozinha') && (
               <View style={styles.blocoServico}>
                 <Text style={styles.blocoTitulo}>🍳 Cozinha</Text>
@@ -437,7 +421,6 @@ export default function EmployerScreen() {
               </View>
             )}
 
-            {/* CUIDAR DE CRIANÇAS */}
             {tem('Cuidar de crianças') && (
               <View style={styles.blocoServico}>
                 <Text style={styles.blocoTitulo}>👶 Cuidar de crianças</Text>
@@ -471,7 +454,6 @@ export default function EmployerScreen() {
               </View>
             )}
 
-            {/* CUIDAR DE IDOSOS */}
             {tem('Cuidar de idosos') && (
               <View style={styles.blocoServico}>
                 <Text style={styles.blocoTitulo}>👴 Cuidar de idosos</Text>
@@ -496,7 +478,6 @@ export default function EmployerScreen() {
               </View>
             )}
 
-            {/* JARDINAGEM */}
             {tem('Jardinagem') && (
               <View style={styles.blocoServico}>
                 <Text style={styles.blocoTitulo}>🌿 Jardinagem</Text>
@@ -521,7 +502,6 @@ export default function EmployerScreen() {
               </View>
             )}
 
-            {/* CONDUÇÃO */}
             {tem('Condução') && (
               <View style={styles.blocoServico}>
                 <Text style={styles.blocoTitulo}>🚗 Condução</Text>
@@ -546,7 +526,6 @@ export default function EmployerScreen() {
               </View>
             )}
 
-            {/* SEMPRE VISÍVEL */}
             <View style={styles.blocoServico}>
               <Text style={styles.blocoTitulo}>🏠 Geral</Text>
               <Text style={styles.label}>Tem animais em casa?</Text>
@@ -558,7 +537,6 @@ export default function EmployerScreen() {
                   </TouchableOpacity>
                 ))}
               </View>
-
               <Text style={styles.label}>Quando precisa começar?</Text>
               <View style={styles.chipGrid}>
                 {[{ val: 'imediata', label: 'Imediatamente' }, { val: '1semana', label: 'Em 1 semana' }, { val: '1mes', label: 'Em 1 mês' }].map(op => (
@@ -568,7 +546,6 @@ export default function EmployerScreen() {
                   </TouchableOpacity>
                 ))}
               </View>
-
               <Text style={styles.label}>Notas adicionais (opcional)</Text>
               <TextInput
                 style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
@@ -585,7 +562,6 @@ export default function EmployerScreen() {
           </View>
         )}
 
-        {/* NAVEGAÇÃO */}
         <View style={styles.navRow}>
           {etapa > 1 && (
             <TouchableOpacity style={styles.btnVoltar} onPress={() => setEtapa(etapa - 1)}>
