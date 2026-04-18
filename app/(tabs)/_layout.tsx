@@ -5,6 +5,7 @@ import { Text, View } from 'react-native';
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { getTotalNaoLidas } from '@/constants/notifications';
+import { supabase } from '@/constants/supabase';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -38,6 +39,77 @@ function BadgeSino({ color }: { color: string }) {
   );
 }
 
+function BadgeMatches({ color }: { color: string }) {
+  const [total, setTotal] = useState(0);
+
+  useEffect(() => {
+    verificarMatches();
+    const interval = setInterval(verificarMatches, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  async function verificarMatches() {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: anuncios } = await supabase
+        .from('anuncios_empregadores')
+        .select('id')
+        .eq('utilizador_id', user.id)
+        .eq('estado', 'activo')
+        .limit(1);
+
+      if (!anuncios || anuncios.length === 0) {
+        const { data: perfil } = await supabase
+          .from('perfis_trabalhadoras')
+          .select('id')
+          .eq('utilizador_id', user.id)
+          .single();
+
+        if (!perfil) return;
+
+        const { count } = await supabase
+          .from('matches')
+          .select('*', { count: 'exact', head: true })
+          .eq('perfil_trabalhadora_id', perfil.id)
+          .eq('estado', 'pendente');
+
+        setTotal(count ?? 0);
+        return;
+      }
+
+      const { count } = await supabase
+        .from('matches')
+        .select('*', { count: 'exact', head: true })
+        .eq('anuncio_id', anuncios[0].id)
+        .eq('estado', 'pendente');
+
+      setTotal(count ?? 0);
+    } catch (e) {
+      // silencioso
+    }
+  }
+
+  return (
+    <View style={{ width: 28, height: 28, alignItems: 'center', justifyContent: 'center' }}>
+      <IconSymbol size={28} name="heart.fill" color={color} />
+      {total > 0 && (
+        <View style={{
+          position: 'absolute', top: -2, right: -2,
+          backgroundColor: '#1D9E75', borderRadius: 8,
+          minWidth: 16, height: 16, alignItems: 'center', justifyContent: 'center',
+          paddingHorizontal: 3,
+        }}>
+          <Text style={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }}>
+            {total > 9 ? '9+' : total}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
 export default function TabLayout() {
   const colorScheme = useColorScheme();
 
@@ -59,7 +131,7 @@ export default function TabLayout() {
         name="match"
         options={{
           title: 'Matches',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="heart.fill" color={color} />,
+          tabBarIcon: ({ color }) => <BadgeMatches color={color} />,
         }}
       />
       <Tabs.Screen
