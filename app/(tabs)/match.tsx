@@ -35,6 +35,7 @@ export default function MatchesScreen() {
   const [calculando, setCalculando] = useState(false);
   const [anuncioId, setAnuncioId] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
     carregarDados();
@@ -46,6 +47,7 @@ export default function MatchesScreen() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+      setUserId(user.id);
 
       const { data: anuncios } = await supabase
         .from('anuncios_empregadores')
@@ -108,6 +110,58 @@ export default function MatchesScreen() {
       setErro('Erro ao calcular matches.');
     } finally {
       setCalculando(false);
+    }
+  }
+
+  async function contactar(match: Match) {
+    if (!userId) return;
+    try {
+      const trabalhadoraUserId = match.perfis_trabalhadoras?.utilizadores?.id;
+      if (!trabalhadoraUserId) {
+        Alert.alert('Erro', 'Não foi possível encontrar a trabalhadora.');
+        return;
+      }
+
+      // Verificar se já existe conversa para este match
+      const { data: conversaExistente } = await supabase
+        .from('conversas')
+        .select('id')
+        .eq('match_id', match.id)
+        .single();
+
+      let conversaId: string;
+
+      if (conversaExistente) {
+        conversaId = conversaExistente.id;
+      } else {
+        // Criar nova conversa
+        const { data: novaConversa, error } = await supabase
+          .from('conversas')
+          .insert({
+            match_id: match.id,
+            trabalhadora_id: trabalhadoraUserId,
+            empregador_id: userId,
+          })
+          .select('id')
+          .single();
+
+        if (error || !novaConversa) {
+          Alert.alert('Erro', error?.message ?? 'Erro ao criar conversa.');
+          return;
+        }
+
+        conversaId = novaConversa.id;
+
+        // Actualizar estado do match para "contactado"
+        await supabase
+          .from('matches')
+          .update({ estado: 'contactado' })
+          .eq('id', match.id);
+      }
+
+      router.push(`/(tabs)/messages?conversa_id=${conversaId}` as any);
+    } catch (e: any) {
+      Alert.alert('Erro', e?.message ?? 'Erro ao contactar.');
     }
   }
 
@@ -241,7 +295,10 @@ export default function MatchesScreen() {
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.btnContactar}
-                onPress={() => router.push('/(tabs)/messages' as any)}>
+                onPress={(e) => {
+                  e.stopPropagation();
+                  contactar(match);
+                }}>
                 <Text style={styles.btnContactarText}>💬 Contactar</Text>
               </TouchableOpacity>
             </View>
