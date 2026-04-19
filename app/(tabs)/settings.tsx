@@ -1,11 +1,13 @@
 import { getLingua, setLingua } from '@/constants/i18n';
+import { supabase } from '@/constants/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function SettingsScreen() {
   const [lingua, setLinguaState] = useState<'pt' | 'en'>('pt');
+  const router = useRouter();
 
   useFocusEffect(
     useCallback(() => {
@@ -14,15 +16,16 @@ export default function SettingsScreen() {
   );
 
   const mudarLingua = async (novaLingua: 'pt' | 'en') => {
-  await setLingua(novaLingua);
-  setLinguaState(novaLingua);
-  Alert.alert(
-    novaLingua === 'pt' ? 'Língua alterada' : 'Language changed',
-    novaLingua === 'pt' 
-      ? 'A app está agora em Português. Navegue para outro ecrã para ver as mudanças.' 
-      : 'The app is now in English. Navigate to another screen to see the changes.',
-  );
-};
+    await setLingua(novaLingua);
+    setLinguaState(novaLingua);
+    Alert.alert(
+      novaLingua === 'pt' ? 'Língua alterada' : 'Language changed',
+      novaLingua === 'pt'
+        ? 'A app está agora em Português. Navegue para outro ecrã para ver as mudanças.'
+        : 'The app is now in English. Navigate to another screen to see the changes.',
+    );
+  };
+
   const limparDados = async () => {
     Alert.alert(
       'Limpar dados',
@@ -34,6 +37,24 @@ export default function SettingsScreen() {
           onPress: async () => {
             await AsyncStorage.clear();
             Alert.alert('Feito', 'Dados limpos. Reinicie a app.');
+          }
+        },
+      ]
+    );
+  };
+
+  const logout = async () => {
+    Alert.alert(
+      'Terminar sessão',
+      'Tem a certeza que quer sair da sua conta?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Sair', style: 'destructive',
+          onPress: async () => {
+            await supabase.auth.signOut();
+            await AsyncStorage.clear();
+            router.replace('/(tabs)/explore' as any);
           }
         },
       ]
@@ -90,6 +111,12 @@ export default function SettingsScreen() {
             {lingua === 'pt' ? '🗑️ Limpar dados locais' : '🗑️ Clear local data'}
           </Text>
         </TouchableOpacity>
+
+        <TouchableOpacity style={[styles.opcaoPerigo, { marginTop: 8 }]} onPress={logout}>
+          <Text style={styles.opcaoPerigoTexto}>
+            {lingua === 'pt' ? '🚪 Terminar sessão' : '🚪 Sign out'}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {/* SOBRE */}
@@ -115,10 +142,8 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: { backgroundColor: '#f5f5f0', padding: 24, paddingTop: 60 },
   titulo: { fontSize: 28, fontWeight: 'bold', color: '#222', marginBottom: 24 },
-
   seccao: { marginBottom: 24 },
   seccaoTitulo: { fontSize: 13, fontWeight: '700', color: '#aaa', letterSpacing: 1, marginBottom: 12 },
-
   opcao: { backgroundColor: '#fff', borderRadius: 14, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, borderWidth: 1, borderColor: '#e0e0da' },
   opcaoActiva: { backgroundColor: '#e8f5f0', borderColor: '#1D9E75' },
   opcaoInfo: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -127,10 +152,8 @@ const styles = StyleSheet.create({
   opcaoTituloActivo: { color: '#1D9E75' },
   opcaoDesc: { fontSize: 12, color: '#888', marginTop: 2 },
   check: { fontSize: 18, color: '#1D9E75', fontWeight: 'bold' },
-
   opcaoPerigo: { backgroundColor: '#fff0f0', borderRadius: 14, padding: 16, borderWidth: 1, borderColor: '#ffcdd2' },
   opcaoPerigoTexto: { fontSize: 15, color: '#c0392b', fontWeight: '600' },
-
   sobreCard: { backgroundColor: '#fff', borderRadius: 14, padding: 16, alignItems: 'center', borderWidth: 1, borderColor: '#e0e0da' },
   sobreNome: { fontSize: 18, fontWeight: 'bold', color: '#1D9E75', marginBottom: 4 },
   sobreVersao: { fontSize: 12, color: '#aaa', marginBottom: 8 },

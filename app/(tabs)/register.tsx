@@ -5,9 +5,12 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
+const SUPABASE_URL = 'https://yxewlabdcxncgjoecxlz.supabase.co';
+
 export default function RegisterScreen() {
   const [nome, setNome] = useState<string>('');
   const [telefone, setTelefone] = useState<string>('');
+  const [codigoConvite, setCodigoConvite] = useState<string>('');
   const [tipoDocumento, setTipoDocumento] = useState<'bi' | 'passaporte'>('bi');
   const [numeroDocumento, setNumeroDocumento] = useState<string>('');
   const [validadeDocumento, setValidadeDocumento] = useState<string>('');
@@ -16,7 +19,6 @@ export default function RegisterScreen() {
   const [tipo, setTipo] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
 
-  // Fotos
   const [fotoPerfil, setFotoPerfil] = useState<string | null>(null);
   const [fotoDocumentoFrente, setFotoDocumentoFrente] = useState<string | null>(null);
   const [fotoDocumentoVerso, setFotoDocumentoVerso] = useState<string | null>(null);
@@ -24,6 +26,11 @@ export default function RegisterScreen() {
 
   const router = useRouter();
   const { tipo: tipoParam } = useLocalSearchParams();
+
+  const CODIGOS_VALIDOS = [
+    'MOZDOM2026', 'TESTE123', 'AMIGO001', 'AMIGO002',
+    'AMIGO003', 'AMIGO004', 'AMIGO005',
+  ];
 
   useEffect(() => {
     if (tipoParam && tipoParam !== '') {
@@ -44,8 +51,8 @@ export default function RegisterScreen() {
     }
 
     const resultado = usarCamera
-      ? await ImagePicker.launchCameraAsync({ quality: 0.7, allowsEditing: true, aspect: [4, 3] })
-      : await ImagePicker.launchImageLibraryAsync({ quality: 0.7, allowsEditing: true, aspect: [4, 3] });
+      ? await ImagePicker.launchCameraAsync({ quality: 0.5, allowsEditing: true, aspect: [4, 3] })
+      : await ImagePicker.launchImageLibraryAsync({ quality: 0.5, allowsEditing: true, aspect: [4, 3] });
 
     if (!resultado.canceled && resultado.assets[0]) {
       setter(resultado.assets[0].uri);
@@ -58,6 +65,43 @@ export default function RegisterScreen() {
       { text: 'Escolher da galeria', onPress: () => tirarFoto(setter, false) },
       { text: 'Cancelar', style: 'cancel' },
     ]);
+  };
+
+  const uploadFoto = async (uri: string, userId: string, nomeArquivo: string): Promise<string | null> => {
+    try {
+      const extensao = uri.split('.').pop()?.split('?')[0] ?? 'jpg';
+      const caminho = `${userId}/${nomeArquivo}.${extensao}`;
+      const formData = new FormData();
+      formData.append('file', {
+        uri: uri,
+        name: `${nomeArquivo}.${extensao}`,
+        type: `image/${extensao}`,
+      } as any);
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return null;
+
+      const res = await fetch(
+        `${SUPABASE_URL}/storage/v1/object/documentos/${caminho}`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            'x-upsert': 'true',
+          },
+          body: formData,
+        }
+      );
+
+      if (!res.ok) {
+        console.error('Erro upload status:', res.status, await res.text());
+        return null;
+      }
+      return caminho;
+    } catch (e) {
+      console.error('Erro ao fazer upload:', e);
+      return null;
+    }
   };
 
   const FotoBox = ({
@@ -95,27 +139,81 @@ export default function RegisterScreen() {
       Alert.alert('Erro', 'Preencha todos os campos obrigatórios');
       return;
     }
+
+    const codigoUpper = codigoConvite.trim().toUpperCase();
+    if (!CODIGOS_VALIDOS.includes(codigoUpper)) {
+      Alert.alert('❌ Código inválido', 'Introduza um código de convite válido.');
+      return;
+    }
+
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOtp({
-        phone: '+258' + telefone,
+      const numeroCompleto = '258' + telefone;
+      const emailFicticio = `${numeroCompleto}@domesticamoz.app`;
+      const password = codigoUpper + numeroCompleto;
+
+      let userId: string | null = null;
+
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: emailFicticio,
+        password: password,
+        options: { data: { telefone: numeroCompleto, codigo_convite: codigoUpper } }
       });
 
-      if (error) {
-        Alert.alert('Erro', error.message);
+      if (signUpError && signUpError.message.includes('already registered')) {
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email: emailFicticio,
+          password: password,
+        });
+        if (signInError) {
+          Alert.alert('Erro', 'Já tem conta com este número. Use o botão "Entrar".');
+          setLoading(false);
+          return;
+        }
+        userId = signInData?.user?.id ?? null;
+      } else if (signUpError) {
+        Alert.alert('Erro', signUpError.message);
+        setLoading(false);
+        return;
+      } else {
+        userId = signUpData?.user?.id ?? null;
+      }
+
+      if (!userId) {
+        Alert.alert('Erro', 'Não foi possível criar a conta.');
         setLoading(false);
         return;
       }
 
-      await AsyncStorage.setItem('registo_nome', nome);
-      await AsyncStorage.setItem('registo_documento', numeroDocumento);
-      await AsyncStorage.setItem('registo_tipo_documento', tipoDocumento);
-      await AsyncStorage.setItem('registo_validade', validadeDocumento);
-      await AsyncStorage.setItem('registo_nascimento', nascimento);
-      await AsyncStorage.setItem('registo_nacionalidade', nacionalidade);
-      await AsyncStorage.setItem('tipoUser', tipo);
+      // Upload das fotos
+      let urlFrente = null, urlSelfie = null;
+      if (fotoDocumentoFrente) urlFrente = await uploadFoto(fotoDocumentoFrente, userId, 'doc_frente');
+      if (fotoSelfieDocumento) urlSelfie = await uploadFoto(fotoSelfieDocumento, userId, 'selfie_doc');
 
-      router.push({ pathname: '/(tabs)/verify', params: { phone: '+258' + telefone } });
+      // Guardar dados do utilizador
+      const { error: upsertError } = await supabase.from('utilizadores').upsert({
+        id: userId,
+        nome_completo: nome,
+        numero_telemovel: numeroCompleto,
+        tipo: tipo || 'trabalhadora',
+        numero_bi: numeroDocumento,
+        data_nascimento: nascimento,
+        foto_bi_url: urlFrente,
+        foto_selfie_bi_url: urlSelfie,
+        estado: 'pendente_verificacao',
+        actualizado_em: new Date().toISOString(),
+      }, { onConflict: 'id' });
+
+      if (upsertError) {
+        console.error('Erro upsert:', upsertError.message);
+      }
+
+      await AsyncStorage.setItem('tipoUser', tipo);
+      await AsyncStorage.setItem('codigo_convite_valido', 'true');
+
+      Alert.alert('✅ Conta criada!', 'A sua conta foi criada. Aguarde a verificação pelo administrador.', [
+        { text: 'Continuar', onPress: () => router.replace('/') }
+      ]);
 
     } catch (e) {
       Alert.alert('Erro', 'Sem ligação ao servidor');
@@ -132,7 +230,6 @@ export default function RegisterScreen() {
       <Text style={styles.title}>Criar conta</Text>
       <Text style={styles.subtitle}>Preencha os seus dados</Text>
 
-      {/* BADGE TIPO */}
       {tipo !== '' && (
         <View style={[styles.tipoBadge, tipo === 'empregador' ? styles.tipoBadgeEmpregador : styles.tipoBadgeTrabalhadora]}>
           <Text style={[styles.tipoBadgeText, tipo === 'empregador' ? styles.tipoBadgeTextEmpregador : styles.tipoBadgeTextTrabalhadora]}>
@@ -141,17 +238,9 @@ export default function RegisterScreen() {
         </View>
       )}
 
-      {/* FOTO DE PERFIL */}
       <Text style={styles.seccaoTitulo}>📸 Foto de perfil</Text>
-      <FotoBox
-        foto={fotoPerfil}
-        setter={setFotoPerfil}
-        titulo="Foto de perfil"
-        desc="Tire uma selfie clara do seu rosto"
-        icone="🤳"
-      />
+      <FotoBox foto={fotoPerfil} setter={setFotoPerfil} titulo="Foto de perfil" desc="Tire uma selfie clara do seu rosto" icone="🤳" />
 
-      {/* DADOS PESSOAIS */}
       <Text style={styles.seccaoTitulo}>👤 Dados pessoais</Text>
 
       <Text style={styles.label}>Nome completo *</Text>
@@ -173,6 +262,16 @@ export default function RegisterScreen() {
       </View>
       <View style={{ marginBottom: 16 }} />
 
+      <Text style={styles.label}>Código de convite *</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Ex: MOZDOM2026"
+        value={codigoConvite}
+        onChangeText={setCodigoConvite}
+        autoCapitalize="characters"
+        autoCorrect={false}
+      />
+
       <Text style={styles.label}>Data de nascimento *</Text>
       <TextInput style={styles.input} placeholder="AAAA-MM-DD" value={nascimento} onChangeText={setNascimento} />
 
@@ -186,7 +285,6 @@ export default function RegisterScreen() {
         ))}
       </View>
 
-      {/* DOCUMENTO */}
       <Text style={styles.seccaoTitulo}>🪪 Documento de identidade</Text>
 
       <Text style={styles.label}>Tipo de documento *</Text>
@@ -215,35 +313,21 @@ export default function RegisterScreen() {
       <Text style={styles.label}>Data de validade do documento</Text>
       <TextInput style={styles.input} placeholder="AAAA-MM-DD" value={validadeDocumento} onChangeText={setValidadeDocumento} />
 
-      {/* FOTOS DO DOCUMENTO */}
       <Text style={styles.seccaoTitulo}>📷 Fotos do documento</Text>
-      <Text style={styles.seccaoDesc}>As fotos ajudam a verificar a sua identidade e aumentam a confiança no seu perfil.</Text>
+      <Text style={styles.seccaoDesc}>As fotos ajudam a verificar a sua identidade.</Text>
 
-      <FotoBox
-        foto={fotoDocumentoFrente}
-        setter={setFotoDocumentoFrente}
+      <FotoBox foto={fotoDocumentoFrente} setter={setFotoDocumentoFrente}
         titulo={tipoDocumento === 'bi' ? 'BI — frente' : 'Passaporte — página principal'}
-        desc="Fotografe o documento claramente"
-        icone="🪪"
-      />
+        desc="Fotografe o documento claramente" icone="🪪" />
 
       {tipoDocumento === 'bi' && (
-        <FotoBox
-          foto={fotoDocumentoVerso}
-          setter={setFotoDocumentoVerso}
-          titulo="BI — verso"
-          desc="Fotografe o verso do BI"
-          icone="🔄"
-        />
+        <FotoBox foto={fotoDocumentoVerso} setter={setFotoDocumentoVerso}
+          titulo="BI — verso" desc="Fotografe o verso do BI" icone="🔄" />
       )}
 
-      <FotoBox
-        foto={fotoSelfieDocumento}
-        setter={setFotoSelfieDocumento}
+      <FotoBox foto={fotoSelfieDocumento} setter={setFotoSelfieDocumento}
         titulo="Selfie com documento"
-        desc="Segure o documento perto do rosto e tire uma foto"
-        icone="🤳"
-      />
+        desc="Segure o documento perto do rosto e tire uma foto" icone="🤳" />
 
       <View style={styles.notaVerificacao}>
         <Text style={styles.notaVerificacaoTexto}>🔒 As suas fotos são usadas apenas para verificação de identidade e não são partilhadas publicamente.</Text>
@@ -271,36 +355,29 @@ const styles = StyleSheet.create({
   backText: { color: '#1D9E75', fontSize: 16 },
   title: { fontSize: 28, fontWeight: 'bold', color: '#1D9E75', marginBottom: 8 },
   subtitle: { fontSize: 14, color: '#888780', marginBottom: 24 },
-
   seccaoTitulo: { fontSize: 16, fontWeight: '700', color: '#333', marginTop: 16, marginBottom: 12 },
   seccaoDesc: { fontSize: 13, color: '#888', marginBottom: 12, lineHeight: 20 },
-
   tipoBadge: { borderRadius: 12, padding: 12, marginBottom: 20, borderWidth: 1 },
   tipoBadgeTrabalhadora: { backgroundColor: '#e8f5f0', borderColor: '#b2dfcf' },
   tipoBadgeEmpregador: { backgroundColor: '#EBF4FF', borderColor: '#bfdbf7' },
   tipoBadgeText: { fontSize: 14, fontWeight: '600', textAlign: 'center' },
   tipoBadgeTextTrabalhadora: { color: '#1D9E75' },
   tipoBadgeTextEmpregador: { color: '#185FA5' },
-
   label: { fontSize: 14, fontWeight: '600', color: '#333', marginBottom: 8 },
   input: { borderWidth: 1, borderColor: '#D3D1C7', borderRadius: 12, padding: 16, fontSize: 16, marginBottom: 16 },
-
   phoneRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   prefixBox: { backgroundColor: '#f0f0ea', borderRadius: 12, padding: 16, justifyContent: 'center' },
   prefixText: { fontSize: 14, color: '#333', fontWeight: '600' },
-
   chipGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
   chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: '#f0f0ea', borderWidth: 1, borderColor: '#e0e0da' },
   chipActive: { backgroundColor: '#1D9E75', borderColor: '#1D9E75' },
   chipText: { fontSize: 13, color: '#555' },
   chipTextActive: { color: '#fff', fontWeight: '600' },
-
   tipoDocRow: { gap: 8, marginBottom: 16 },
   tipoDocBtn: { padding: 14, borderRadius: 12, borderWidth: 1, borderColor: '#D3D1C7', alignItems: 'center', backgroundColor: '#f9f9f7' },
   tipoDocBtnActive: { backgroundColor: '#1D9E75', borderColor: '#1D9E75' },
   tipoDocText: { fontSize: 14, fontWeight: '600', color: '#555' },
   tipoDocTextActive: { color: '#fff' },
-
   fotoBox: { borderWidth: 2, borderColor: '#e0e0da', borderRadius: 16, borderStyle: 'dashed', marginBottom: 12, overflow: 'hidden', minHeight: 140 },
   fotoBoxPreenchida: { borderStyle: 'solid', borderColor: '#1D9E75' },
   fotoPlaceholder: { padding: 24, alignItems: 'center' },
@@ -312,10 +389,8 @@ const styles = StyleSheet.create({
   fotoPreview: { width: '100%', height: 180 },
   fotoEditarBadge: { position: 'absolute', bottom: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
   fotoEditarText: { color: '#fff', fontSize: 12 },
-
   notaVerificacao: { backgroundColor: '#e8f5f0', borderRadius: 12, padding: 14, marginBottom: 16, borderWidth: 1, borderColor: '#b2dfcf' },
   notaVerificacaoTexto: { fontSize: 13, color: '#1D9E75', lineHeight: 20 },
-
   btn: { backgroundColor: '#1D9E75', padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 8 },
   btnDisabled: { backgroundColor: '#aaa' },
   btnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
