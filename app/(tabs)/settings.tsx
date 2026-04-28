@@ -1,4 +1,4 @@
-import { getLingua, setLingua } from '@/constants/i18n';
+import { getLingua, setLingua, t } from '@/constants/i18n';
 import { supabase } from '@/constants/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -28,15 +28,15 @@ export default function SettingsScreen() {
 
   const limparDados = async () => {
     Alert.alert(
-      'Limpar dados',
-      'Tem a certeza que quer limpar todos os dados locais?',
+      t('limpar_dados'),
+      t('limpar_dados_confirmacao'),
       [
-        { text: 'Cancelar', style: 'cancel' },
+        { text: t('cancelar'), style: 'cancel' },
         {
-          text: 'Limpar', style: 'destructive',
+          text: t('limpar_tudo'), style: 'destructive',
           onPress: async () => {
             await AsyncStorage.clear();
-            Alert.alert('Feito', 'Dados limpos. Reinicie a app.');
+            Alert.alert(t('sucesso'), t('dados_limpos'));
           }
         },
       ]
@@ -45,12 +45,12 @@ export default function SettingsScreen() {
 
   const logout = async () => {
     Alert.alert(
-      'Terminar sessão',
-      'Tem a certeza que quer sair da sua conta?',
+      t('terminar_sessao'),
+      t('terminar_sessao_confirmacao'),
       [
-        { text: 'Cancelar', style: 'cancel' },
+        { text: t('cancelar'), style: 'cancel' },
         {
-          text: 'Sair', style: 'destructive',
+          text: t('sair'), style: 'destructive',
           onPress: async () => {
             await supabase.auth.signOut();
             await AsyncStorage.clear();
@@ -63,15 +63,10 @@ export default function SettingsScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.titulo}>
-        {lingua === 'pt' ? 'Definições' : 'Settings'}
-      </Text>
+      <Text style={styles.titulo}>{t('definicoes')}</Text>
 
-      {/* LÍNGUA */}
       <View style={styles.seccao}>
-        <Text style={styles.seccaoTitulo}>
-          {lingua === 'pt' ? '🌍 Língua da app' : '🌍 App language'}
-        </Text>
+        <Text style={styles.seccaoTitulo}>🌍 {t('lingua_app').toUpperCase()}</Text>
 
         <TouchableOpacity
           style={[styles.opcao, lingua === 'pt' && styles.opcaoActiva]}
@@ -80,7 +75,7 @@ export default function SettingsScreen() {
             <Text style={styles.opcaoBandeira}>🇲🇿</Text>
             <View>
               <Text style={[styles.opcaoTitulo, lingua === 'pt' && styles.opcaoTituloActivo]}>Português</Text>
-              <Text style={styles.opcaoDesc}>Língua padrão</Text>
+              <Text style={styles.opcaoDesc}>{t('lingua_padrao')}</Text>
             </View>
           </View>
           {lingua === 'pt' && <Text style={styles.check}>✓</Text>}
@@ -93,48 +88,33 @@ export default function SettingsScreen() {
             <Text style={styles.opcaoBandeira}>🇬🇧</Text>
             <View>
               <Text style={[styles.opcaoTitulo, lingua === 'en' && styles.opcaoTituloActivo]}>English</Text>
-              <Text style={styles.opcaoDesc}>For expats and foreigners</Text>
+              <Text style={styles.opcaoDesc}>{t('lingua_expats')}</Text>
             </View>
           </View>
           {lingua === 'en' && <Text style={styles.check}>✓</Text>}
         </TouchableOpacity>
       </View>
 
-      {/* CONTA */}
       <View style={styles.seccao}>
-        <Text style={styles.seccaoTitulo}>
-          {lingua === 'pt' ? '👤 Conta' : '👤 Account'}
-        </Text>
+        <Text style={styles.seccaoTitulo}>👤 {t('conta').toUpperCase()}</Text>
 
         <TouchableOpacity style={styles.opcaoPerigo} onPress={limparDados}>
-          <Text style={styles.opcaoPerigoTexto}>
-            {lingua === 'pt' ? '🗑️ Limpar dados locais' : '🗑️ Clear local data'}
-          </Text>
+          <Text style={styles.opcaoPerigoTexto}>🗑️ {t('limpar_dados')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={[styles.opcaoPerigo, { marginTop: 8 }]} onPress={logout}>
-          <Text style={styles.opcaoPerigoTexto}>
-            {lingua === 'pt' ? '🚪 Terminar sessão' : '🚪 Sign out'}
-          </Text>
+          <Text style={styles.opcaoPerigoTexto}>🚪 {t('terminar_sessao')}</Text>
         </TouchableOpacity>
       </View>
 
-      {/* SOBRE */}
       <View style={styles.seccao}>
-        <Text style={styles.seccaoTitulo}>
-          {lingua === 'pt' ? 'ℹ️ Sobre' : 'ℹ️ About'}
-        </Text>
+        <Text style={styles.seccaoTitulo}>ℹ️ {t('sobre').toUpperCase()}</Text>
         <View style={styles.sobreCard}>
-          <Text style={styles.sobreNome}>DomésticaMoz</Text>
-          <Text style={styles.sobreVersao}>Versão 1.0.0 — Fase de teste</Text>
-          <Text style={styles.sobreDesc}>
-            {lingua === 'pt'
-              ? 'Plataforma de emprego doméstico de confiança em Moçambique.'
-              : 'Trusted domestic employment platform in Mozambique.'}
-          </Text>
+          <Text style={styles.sobreNome}>{t('app_nome')}</Text>
+          <Text style={styles.sobreVersao}>{t('versao')}</Text>
+          <Text style={styles.sobreDesc}>{t('descricao_app')}</Text>
         </View>
       </View>
-
     </ScrollView>
   );
 }

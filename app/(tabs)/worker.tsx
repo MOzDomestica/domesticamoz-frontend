@@ -1,10 +1,18 @@
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { getLingua, t } from '@/constants/i18n';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function WorkerScreen() {
   const router = useRouter();
   const [regime, setRegime] = useState<'residente' | 'nao_residente'>('residente');
+  const [, setLinguaActual] = useState('pt');
+
+  useFocusEffect(
+    useCallback(() => {
+      getLingua().then(l => setLinguaActual(l));
+    }, [])
+  );
 
   const worker = {
     iniciais: 'AC',
@@ -57,7 +65,7 @@ export default function WorkerScreen() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-        <Text style={styles.backText}>← Voltar</Text>
+        <Text style={styles.backText}>← {t('voltar')}</Text>
       </TouchableOpacity>
 
       {/* HEADER */}
@@ -71,13 +79,13 @@ export default function WorkerScreen() {
               <Text style={styles.nome}>{worker.nome}</Text>
               {worker.verificada && (
                 <View style={styles.badgeVerificada}>
-                  <Text style={styles.badgeVerificadaText}>Verificada</Text>
+                  <Text style={styles.badgeVerificadaText}>{t('verificada')}</Text>
                 </View>
               )}
             </View>
             <Text style={styles.localizacao}>{worker.provincia} · {worker.bairro} · {worker.distrito}</Text>
             <Text style={styles.estrelas}>{'★'.repeat(estrelasFull)}{'☆'.repeat(5 - estrelasFull)}</Text>
-            <Text style={styles.avaliacoes}>{worker.estrelas} · {worker.totalAvaliacoes} avaliações</Text>
+            <Text style={styles.avaliacoes}>{worker.estrelas} · {worker.totalAvaliacoes} {t('avaliacoes')}</Text>
           </View>
         </View>
 
@@ -99,7 +107,7 @@ export default function WorkerScreen() {
 
       {/* REGIME */}
       <View style={styles.card}>
-        <Text style={styles.sectionLabel}>REGIME DE TRABALHO</Text>
+        <Text style={styles.sectionLabel}>{t('regime_trabalho').toUpperCase()}</Text>
 
         <TouchableOpacity
           style={[styles.radioRow, regime === 'nao_residente' && styles.radioRowActive]}
@@ -108,8 +116,8 @@ export default function WorkerScreen() {
             {regime === 'nao_residente' && <View style={styles.radioDot} />}
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.radioTitulo, regime === 'nao_residente' && styles.radioTituloActive]}>Não residente</Text>
-            <Text style={styles.radioDesc}>Entra e sai no mesmo dia. Horário definido.</Text>
+            <Text style={[styles.radioTitulo, regime === 'nao_residente' && styles.radioTituloActive]}>{t('nao_residente')}</Text>
+            <Text style={styles.radioDesc}>{t('nao_residente_desc')}</Text>
           </View>
         </TouchableOpacity>
 
@@ -120,8 +128,8 @@ export default function WorkerScreen() {
             {regime === 'residente' && <View style={styles.radioDot} />}
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.radioTitulo, regime === 'residente' && styles.radioTituloActive]}>Residente</Text>
-            <Text style={[styles.radioDesc, regime === 'residente' && styles.radioDescActive]}>Dorme na casa do empregador. Quarto próprio necessário.</Text>
+            <Text style={[styles.radioTitulo, regime === 'residente' && styles.radioTituloActive]}>{t('residente')}</Text>
+            <Text style={[styles.radioDesc, regime === 'residente' && styles.radioDescActive]}>{t('residente_desc')}</Text>
           </View>
         </TouchableOpacity>
       </View>
@@ -129,29 +137,29 @@ export default function WorkerScreen() {
       {/* CONDIÇÕES RESIDENTE */}
       {regime === 'residente' && (
         <View style={styles.cardGreen}>
-          <Text style={styles.sectionLabelGreen}>Condições como residente</Text>
+          <Text style={styles.sectionLabelGreen}>{t('condicoes_residente')}</Text>
           <View style={styles.row}>
-            <Text style={styles.rowLabel}>Quarto próprio</Text>
-            <Text style={styles.rowValue}>{worker.residente.quartoIndividual ? 'Exige quarto individual' : 'Não exige'}</Text>
+            <Text style={styles.rowLabel}>{t('quarto_proprio')}</Text>
+            <Text style={styles.rowValue}>{worker.residente.quartoIndividual ? t('exige_quarto') : t('nao_exige')}</Text>
           </View>
           <View style={styles.row}>
-            <Text style={styles.rowLabel}>Refeições</Text>
+            <Text style={styles.rowLabel}>{t('refeicoes')}</Text>
             <Text style={styles.rowValue}>{worker.residente.refeicoes}</Text>
           </View>
           <View style={styles.row}>
-            <Text style={styles.rowLabel}>Dias de folga</Text>
+            <Text style={styles.rowLabel}>{t('dias_folga')}</Text>
             <Text style={styles.rowValue}>{worker.residente.diasFolga}</Text>
           </View>
           <View style={styles.row}>
-            <Text style={styles.rowLabel}>Saída ao fim de semana</Text>
-            <Text style={styles.rowValue}>{worker.residente.saidaFimSemana ? 'Sim, regresso domingo' : 'Não'}</Text>
+            <Text style={styles.rowLabel}>{t('saida_fim_semana')}</Text>
+            <Text style={styles.rowValue}>{worker.residente.saidaFimSemana ? t('sim_regresso_domingo') : t('nao')}</Text>
           </View>
           <View style={styles.row}>
-            <Text style={styles.rowLabel}>Salário esperado</Text>
+            <Text style={styles.rowLabel}>{t('salario_esperado')}</Text>
             <View style={styles.salarioRow}>
               <Text style={styles.rowValue}>{worker.residente.salarioMin.toLocaleString()} – {worker.residente.salarioMax.toLocaleString()} MZN</Text>
               {worker.residente.salarioNegociavel && (
-                <View style={styles.badgeNegociar}><Text style={styles.badgeNegociarText}>Negociar</Text></View>
+                <View style={styles.badgeNegociar}><Text style={styles.badgeNegociarText}>{t('negociar')}</Text></View>
               )}
             </View>
           </View>
@@ -161,25 +169,25 @@ export default function WorkerScreen() {
       {/* CONDIÇÕES NÃO RESIDENTE */}
       {regime === 'nao_residente' && (
         <View style={styles.cardBlue}>
-          <Text style={styles.sectionLabelBlue}>Condições como não residente</Text>
+          <Text style={styles.sectionLabelBlue}>{t('condicoes_nao_residente')}</Text>
           <View style={styles.row}>
-            <Text style={styles.rowLabel}>Horário</Text>
+            <Text style={styles.rowLabel}>{t('horario')}</Text>
             <Text style={styles.rowValue}>{worker.naoResidente.horarioEntrada} – {worker.naoResidente.horarioSaida}</Text>
           </View>
           <View style={styles.row}>
-            <Text style={styles.rowLabel}>Dias trabalhados</Text>
+            <Text style={styles.rowLabel}>{t('dias_trabalhados')}</Text>
             <Text style={styles.rowValue}>{worker.naoResidente.diasTrabalhados}</Text>
           </View>
           <View style={styles.row}>
-            <Text style={styles.rowLabel}>Transporte</Text>
+            <Text style={styles.rowLabel}>{t('transporte')}</Text>
             <View style={styles.badgeNegociar}><Text style={styles.badgeNegociarText}>{worker.naoResidente.transporte}</Text></View>
           </View>
           <View style={styles.row}>
-            <Text style={styles.rowLabel}>Salário esperado</Text>
+            <Text style={styles.rowLabel}>{t('salario_esperado')}</Text>
             <View style={styles.salarioRow}>
               <Text style={styles.rowValue}>{worker.naoResidente.salarioMin.toLocaleString()} – {worker.naoResidente.salarioMax.toLocaleString()} MZN</Text>
               {worker.naoResidente.salarioNegociavel && (
-                <View style={styles.badgeNegociar}><Text style={styles.badgeNegociarText}>Negociar</Text></View>
+                <View style={styles.badgeNegociar}><Text style={styles.badgeNegociarText}>{t('negociar')}</Text></View>
               )}
             </View>
           </View>
@@ -188,61 +196,59 @@ export default function WorkerScreen() {
 
       {/* LOCALIZAÇÃO */}
       <View style={styles.card}>
-        <Text style={styles.sectionLabel}>LOCALIZAÇÃO E DISPONIBILIDADE</Text>
+        <Text style={styles.sectionLabel}>{t('localizacao_disponibilidade').toUpperCase()}</Text>
         <View style={styles.row}>
-          <Text style={styles.rowLabel}>Província</Text>
+          <Text style={styles.rowLabel}>{t('provincia')}</Text>
           <Text style={styles.rowValue}>{worker.localizacao.provincia}</Text>
         </View>
         <View style={styles.row}>
-          <Text style={styles.rowLabel}>Distrito</Text>
+          <Text style={styles.rowLabel}>{t('distrito')}</Text>
           <Text style={styles.rowValue}>{worker.localizacao.distrito}</Text>
         </View>
         <View style={styles.row}>
-          <Text style={styles.rowLabel}>Bairro</Text>
+          <Text style={styles.rowLabel}>{t('bairro')}</Text>
           <Text style={styles.rowValue}>{worker.localizacao.bairro}</Text>
         </View>
         <View style={styles.row}>
-          <Text style={styles.rowLabel}>Deslocação</Text>
-          <Text style={styles.rowValue}>{worker.localizacao.deslocacao ? `Sim, ${worker.localizacao.areaDeslocacao}` : 'Não se desloca'}</Text>
+          <Text style={styles.rowLabel}>{t('deslocacao')}</Text>
+          <Text style={styles.rowValue}>{worker.localizacao.deslocacao ? t('sim') + ', ' + worker.localizacao.areaDeslocacao : t('nao_se_desloca')}</Text>
         </View>
       </View>
 
       {/* CONDIÇÕES GERAIS */}
       <View style={styles.card}>
-        <Text style={styles.sectionLabel}>CONDIÇÕES GERAIS</Text>
+        <Text style={styles.sectionLabel}>{t('condicoes_gerais').toUpperCase()}</Text>
         <View style={styles.row}>
-          <Text style={styles.rowLabel}>Detergente limpeza</Text>
-          <Text style={styles.rowValue}>{worker.condicoes.detergenteUsoDoEmpregador ? 'Usa os do empregador' : 'Traz o próprio'}</Text>
+          <Text style={styles.rowLabel}>{t('detergente_limpeza')}</Text>
+          <Text style={styles.rowValue}>{worker.condicoes.detergenteUsoDoEmpregador ? t('usa_do_empregador') : t('traz_proprio')}</Text>
         </View>
         <View style={styles.row}>
-          <Text style={styles.rowLabel}>Detergente roupa</Text>
+          <Text style={styles.rowLabel}>{t('detergente_roupa')}</Text>
           <View style={styles.badgeNegociar}><Text style={styles.badgeNegociarText}>{worker.condicoes.detergenteRoupa}</Text></View>
         </View>
         <View style={styles.row}>
-          <Text style={styles.rowLabel}>Animais em casa</Text>
-          <Text style={styles.rowValue}>{worker.condicoes.aceitaAnimais ? 'Aceita' : 'Não aceita'}</Text>
+          <Text style={styles.rowLabel}>{t('animais_casa')}</Text>
+          <Text style={styles.rowValue}>{worker.condicoes.aceitaAnimais ? t('aceita') : t('nao_aceita')}</Text>
         </View>
         <View style={styles.row}>
-          <Text style={styles.rowLabel}>Experiência</Text>
+          <Text style={styles.rowLabel}>{t('experiencia')}</Text>
           <Text style={styles.rowValue}>{worker.condicoes.experiencia}</Text>
         </View>
         <View style={styles.row}>
-          <Text style={styles.rowLabel}>Idiomas</Text>
+          <Text style={styles.rowLabel}>{t('idiomas')}</Text>
           <Text style={styles.rowValue}>{worker.condicoes.idiomas.join(', ')}</Text>
         </View>
       </View>
 
-      {/* NOTA */}
       <View style={styles.nota}>
-        <Text style={styles.notaTexto}>Para empregadas residentes: refeições e alojamento são sempre da responsabilidade do empregador — estes campos ficam automaticamente marcados como incluídos no match.</Text>
+        <Text style={styles.notaTexto}>{t('nota_residente_refeicoes')}</Text>
       </View>
 
-      {/* BOTÕES */}
       <TouchableOpacity style={styles.btnPropor} onPress={() => router.push('/(tabs)/messages')}>
-        <Text style={styles.btnProporText}>Propor entrevista</Text>
+        <Text style={styles.btnProporText}>{t('propor_entrevista')}</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.btnHistorico}>
-        <Text style={styles.btnHistoricoText}>Ver histórico completo</Text>
+        <Text style={styles.btnHistoricoText}>{t('ver_historico')}</Text>
       </TouchableOpacity>
 
       <View style={{ height: 40 }} />
@@ -254,11 +260,9 @@ const styles = StyleSheet.create({
   container: { backgroundColor: '#f5f5f0', padding: 20, paddingTop: 60 },
   backBtn: { marginBottom: 16 },
   backText: { color: '#1D9E75', fontSize: 16 },
-
   card: { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 16 },
   cardGreen: { backgroundColor: '#e8f5f0', borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#b2dfcf' },
   cardBlue: { backgroundColor: '#EBF4FF', borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#bfdbf7' },
-
   headerTop: { flexDirection: 'row', marginBottom: 12 },
   avatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#b2dfdb', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   avatarText: { color: '#1D9E75', fontSize: 18, fontWeight: 'bold' },
@@ -270,18 +274,15 @@ const styles = StyleSheet.create({
   localizacao: { fontSize: 12, color: '#888', marginTop: 2 },
   estrelas: { color: '#f59e0b', fontSize: 15, marginTop: 4 },
   avaliacoes: { fontSize: 12, color: '#888' },
-
   tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8, alignItems: 'center' },
   tagTipo: { backgroundColor: '#e8f5e9', paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20 },
   tagTipoText: { color: '#1D9E75', fontSize: 13, fontWeight: '600' },
   horarioText: { fontSize: 13, color: '#888' },
   tag: { backgroundColor: '#f0f0ea', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
   tagText: { fontSize: 12, color: '#555' },
-
   sectionLabel: { fontSize: 11, fontWeight: '700', color: '#aaa', letterSpacing: 1, marginBottom: 12 },
   sectionLabelGreen: { fontSize: 13, fontWeight: '600', color: '#1D9E75', marginBottom: 12 },
   sectionLabelBlue: { fontSize: 13, fontWeight: '600', color: '#185FA5', marginBottom: 12 },
-
   radioRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 10, borderRadius: 12, marginBottom: 4 },
   radioRowActive: { backgroundColor: '#e8f5f0' },
   radio: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: '#ccc', alignItems: 'center', justifyContent: 'center', marginTop: 2 },
@@ -291,18 +292,14 @@ const styles = StyleSheet.create({
   radioTituloActive: { color: '#1D9E75' },
   radioDesc: { fontSize: 12, color: '#888', marginTop: 2 },
   radioDescActive: { color: '#1D9E75' },
-
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: '#f0f0ea' },
   rowLabel: { fontSize: 13, color: '#888' },
   rowValue: { fontSize: 13, fontWeight: '600', color: '#333' },
   salarioRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-
   badgeNegociar: { backgroundColor: '#fef3c7', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 20 },
   badgeNegociarText: { color: '#b45309', fontSize: 12, fontWeight: '600' },
-
   nota: { backgroundColor: '#fef9e7', borderRadius: 12, padding: 14, marginBottom: 16, borderWidth: 1, borderColor: '#fde68a' },
   notaTexto: { fontSize: 13, color: '#92400e', lineHeight: 20 },
-
   btnPropor: { padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#333', alignItems: 'center', marginBottom: 12, backgroundColor: '#fff' },
   btnProporText: { fontSize: 16, color: '#333', fontWeight: '500' },
   btnHistorico: { padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#333', alignItems: 'center', backgroundColor: '#fff' },

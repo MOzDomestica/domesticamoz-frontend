@@ -1,18 +1,26 @@
+import { getLingua, t } from '@/constants/i18n';
 import { supabase } from '@/constants/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function VerifyScreen() {
   const [codigo, setCodigo] = useState('');
   const [loading, setLoading] = useState(false);
+  const [, setLinguaActual] = useState('pt');
   const router = useRouter();
   const { phone } = useLocalSearchParams();
 
+  useFocusEffect(
+    useCallback(() => {
+      getLingua().then(l => setLinguaActual(l));
+    }, [])
+  );
+
   const verificarCodigo = async () => {
     if (codigo.length < 6) {
-      Alert.alert('Erro', 'Introduza o código de 6 dígitos');
+      Alert.alert(t('erro'), t('introduza_codigo_6'));
       return;
     }
     setLoading(true);
@@ -24,13 +32,12 @@ export default function VerifyScreen() {
       });
 
       if (error) {
-        Alert.alert('Erro', error.message);
+        Alert.alert(t('erro'), error.message);
         setLoading(false);
         return;
       }
 
       if (data.session) {
-        // Guardar sessão explicitamente
         await supabase.auth.setSession({
           access_token: data.session.access_token,
           refresh_token: data.session.refresh_token,
@@ -48,7 +55,7 @@ export default function VerifyScreen() {
         }
       }
     } catch (e) {
-      Alert.alert('Erro', 'Sem ligação ao servidor');
+      Alert.alert(t('erro'), t('sem_ligacao'));
     }
     setLoading(false);
   };
@@ -65,11 +72,11 @@ export default function VerifyScreen() {
   return (
     <View style={styles.container}>
       <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-        <Text style={styles.backText}>← Voltar</Text>
+        <Text style={styles.backText}>← {t('voltar')}</Text>
       </TouchableOpacity>
 
-      <Text style={styles.title}>Verificar código</Text>
-      <Text style={styles.subtitle}>Introduza o código de 6 dígitos enviado para {phone}</Text>
+      <Text style={styles.title}>{t('verificar_codigo')}</Text>
+      <Text style={styles.subtitle}>{t('introduza_codigo_enviado')} {phone}</Text>
 
       <TextInput
         style={styles.input}
@@ -84,11 +91,11 @@ export default function VerifyScreen() {
         style={[styles.btn, loading && styles.btnDisabled]}
         onPress={verificarCodigo}
         disabled={loading}>
-        <Text style={styles.btnText}>{loading ? 'A verificar...' : 'Confirmar'}</Text>
+        <Text style={styles.btnText}>{loading ? t('carregando') : t('confirmar')}</Text>
       </TouchableOpacity>
 
       <TouchableOpacity onPress={saltarModeTeste}>
-        <Text style={styles.btnSkip}>Saltar (modo teste)</Text>
+        <Text style={styles.btnSkip}>{t('saltar_modo_teste')}</Text>
       </TouchableOpacity>
     </View>
   );

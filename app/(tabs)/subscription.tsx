@@ -1,15 +1,23 @@
+import { getLingua, t } from '@/constants/i18n';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function SubscriptionScreen() {
   const router = useRouter();
   const [tipoUser, setTipoUser] = useState('');
+  const [, setLinguaActual] = useState('pt');
 
   useEffect(() => {
     AsyncStorage.getItem('tipoUser').then(val => setTipoUser(val || 'trabalhadora'));
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      getLingua().then(l => setLinguaActual(l));
+    }, [])
+  );
 
   const isEmpregador = tipoUser === 'empregador';
   const precoMensal = isEmpregador ? '299' : '50';
@@ -20,68 +28,64 @@ export default function SubscriptionScreen() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.icon}>⏰</Text>
-      <Text style={styles.titulo}>Subscrição necessária</Text>
+      <Text style={styles.titulo}>{t('subscricao_necessaria')}</Text>
       <Text style={styles.desc}>
-        {isEmpregador
-          ? 'Para continuar a encontrar trabalhadoras de confiança, subscreva um plano DomésticaMoz.'
-          : 'Para continuar a receber propostas de emprego, subscreva um plano DomésticaMoz.'}
+        {isEmpregador ? t('subscricao_desc_empregador') : t('subscricao_desc_trabalhadora')}
       </Text>
 
       <View style={styles.tipoBadge}>
         <Text style={styles.tipoBadgeText}>
-          {isEmpregador ? '👔 Plano Empregador' : '👩 Plano Trabalhadora'}
+          {isEmpregador ? '👔 ' + t('plano_empregador') : '👩 ' + t('plano_trabalhadora')}
         </Text>
       </View>
 
-      {/* PLANO MENSAL */}
       <View style={styles.planoCard}>
-        <Text style={styles.planoTitulo}>Plano Mensal</Text>
+        <Text style={styles.planoTitulo}>{t('plano_mensal')}</Text>
         <Text style={styles.planoPreco}>
           {precoMensal} MZN
-          <Text style={styles.planoPeriodo}>/mês</Text>
+          <Text style={styles.planoPeriodo}>/{t('mes')}</Text>
         </Text>
         <View style={styles.planoBeneficios}>
           {(isEmpregador ? [
-            '✅ Matches ilimitados',
-            '✅ Chat com trabalhadoras',
-            '✅ Sistema de contratos',
-            '✅ Avaliações verificadas',
-            '✅ Suporte prioritário',
+            '✅ ' + t('matches_ilimitados'),
+            '✅ ' + t('chat_trabalhadoras'),
+            '✅ ' + t('sistema_contratos'),
+            '✅ ' + t('avaliacoes_verificadas'),
+            '✅ ' + t('suporte_prioritario'),
           ] : [
-            '✅ Perfil visível para empregadores',
-            '✅ Receber propostas de emprego',
-            '✅ Chat com empregadores',
-            '✅ Sistema de contratos',
-            '✅ Avaliações verificadas',
+            '✅ ' + t('perfil_visivel_empregadores'),
+            '✅ ' + t('receber_propostas'),
+            '✅ ' + t('chat_empregadores'),
+            '✅ ' + t('sistema_contratos'),
+            '✅ ' + t('avaliacoes_verificadas'),
           ]).map(b => (
             <Text key={b} style={styles.beneficio}>{b}</Text>
           ))}
         </View>
         <TouchableOpacity style={styles.btnSubscrever}>
-          <Text style={styles.btnSubscreverText}>Subscrever por {precoMensal} MZN/mês</Text>
+          <Text style={styles.btnSubscreverText}>{t('subscrever_por')} {precoMensal} MZN/{t('mes')}</Text>
         </TouchableOpacity>
       </View>
 
-      {/* PLANO ANUAL */}
       <View style={styles.planoCardAnual}>
         <View style={styles.badgeDesconto}>
-          <Text style={styles.badgeDescontoText}>Poupa {poupanca}</Text>
+          <Text style={styles.badgeDescontoText}>{t('poupa')} {poupanca}</Text>
         </View>
-        <Text style={[styles.planoTitulo, { color: '#fff' }]}>Plano Anual</Text>
+        <Text style={[styles.planoTitulo, { color: '#fff' }]}>{t('plano_anual')}</Text>
         <Text style={[styles.planoPreco, { color: '#fff' }]}>
           {precoAnual} MZN
-          <Text style={[styles.planoPeriodo, { color: '#e0f0ea' }]}>/ano</Text>
+          <Text style={[styles.planoPeriodo, { color: '#e0f0ea' }]}>/{t('ano')}</Text>
         </Text>
-        <Text style={styles.planoEquivalente}>Equivale a {precoAnualMensal} MZN/mês</Text>
+        <Text style={styles.planoEquivalente}>{t('equivale_a')} {precoAnualMensal} MZN/{t('mes')}</Text>
         <TouchableOpacity style={styles.btnSubscreverAnual}>
           <Text style={[styles.btnSubscreverText, { color: '#1D9E75' }]}>
-            Subscrever por {precoAnual} MZN/ano
+            {t('subscrever_por')} {precoAnual} MZN/{t('ano')}
           </Text>
         </TouchableOpacity>
       </View>
 
       <TouchableOpacity onPress={() => router.push('/')} style={styles.linkSair}>
-        <Text style={styles.linkSairText}>Voltar ao início</Text>
+        <Text style={styles.linkSairText}>{t('voltar_inicio')}</Text>
       </TouchableOpacity>
 
       <View style={{ height: 40 }} />

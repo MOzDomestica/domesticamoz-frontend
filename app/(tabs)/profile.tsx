@@ -1,6 +1,7 @@
+import { getLingua, t } from '@/constants/i18n';
 import { supabase } from '@/constants/supabase';
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 const SERVICOS_OPCOES = [
@@ -19,20 +20,18 @@ export default function ProfileScreen() {
   const router = useRouter();
   const [etapa, setEtapa] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [, setLinguaActual] = useState('pt');
 
-  // Etapa 1
   const [nome, setNome] = useState('');
   const [provincia, setProvincia] = useState('');
   const [distrito, setDistrito] = useState('');
   const [bairro, setBairro] = useState('');
   const [idiomas, setIdiomas] = useState<string[]>([]);
 
-  // Etapa 2
   const [servicos, setServicos] = useState<string[]>([]);
   const [experiencia, setExperiencia] = useState('');
   const [tipoTitulo, setTipoTitulo] = useState('');
 
-  // Etapa 3
   const [regime, setRegime] = useState<'residente' | 'nao_residente' | 'ambos'>('nao_residente');
   const [horarioTipo, setHorarioTipo] = useState<'fixo' | 'flexivel'>('fixo');
   const [horarioEntrada, setHorarioEntrada] = useState('');
@@ -44,7 +43,6 @@ export default function ProfileScreen() {
   const [refeicoes, setRefeicoes] = useState<'todas' | 'negociar' | 'nenhuma'>('negociar');
   const [saidaFimSemana, setSaidaFimSemana] = useState(false);
 
-  // Etapa 4
   const [deslocacao, setDeslocacao] = useState(false);
   const [areaDeslocacao, setAreaDeslocacao] = useState('');
   const [aceitaAnimais, setAceitaAnimais] = useState<'sim' | 'nao' | 'negociar'>('negociar');
@@ -53,6 +51,12 @@ export default function ProfileScreen() {
   const [disponibilidade, setDisponibilidade] = useState<'imediata' | '1semana' | '1mes'>('imediata');
   const [condicaoSaude, setCondicaoSaude] = useState<'nenhuma' | 'prefiro_nao' | 'sim'>('nenhuma');
   const [descricaoSaude, setDescricaoSaude] = useState('');
+
+  useFocusEffect(
+    useCallback(() => {
+      getLingua().then(l => setLinguaActual(l));
+    }, [])
+  );
 
   const toggleItem = (item: string, lista: string[], setLista: (v: string[]) => void) => {
     setLista(lista.includes(item) ? lista.filter(i => i !== item) : [...lista, item]);
@@ -87,7 +91,7 @@ export default function ProfileScreen() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        Alert.alert('Erro', 'Sessão expirada. Por favor entre novamente.');
+        Alert.alert(t('erro'), t('sessao_expirada'));
         router.push('/(tabs)/explore');
         return;
       }
@@ -115,22 +119,20 @@ export default function ProfileScreen() {
       });
 
       if (error) {
-        Alert.alert('Erro', 'Não foi possível guardar o perfil: ' + error.message);
+        Alert.alert(t('erro'), t('erro_guardar_perfil') + error.message);
       } else {
-        Alert.alert('✅ Perfil guardado!', 'O seu perfil está visível para empregadores.', [
-          { text: 'Ver matches', onPress: () => router.push('/(tabs)/match') }
+        Alert.alert('✅ ' + t('perfil_guardado'), t('perfil_visivel'), [
+          { text: t('ver_matches'), onPress: () => router.push('/(tabs)/match') }
         ]);
       }
     } catch (e) {
-      Alert.alert('Erro', 'Sem ligação ao servidor');
+      Alert.alert(t('erro'), t('sem_ligacao'));
     }
     setLoading(false);
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: '#f5f5f0' }}>
-
-      {/* BARRA DE PROGRESSO */}
       <View style={styles.progressBar}>
         {[1, 2, 3, 4].map(n => (
           <View key={n} style={styles.progressStep}>
@@ -144,25 +146,24 @@ export default function ProfileScreen() {
 
       <ScrollView contentContainerStyle={styles.container}>
 
-        {/* ── ETAPA 1: INFO PESSOAL ── */}
         {etapa === 1 && (
           <View>
-            <Text style={styles.etapaTitulo}>Informação pessoal</Text>
-            <Text style={styles.etapaDesc}>Diga-nos quem é e onde está</Text>
+            <Text style={styles.etapaTitulo}>{t('info_pessoal')}</Text>
+            <Text style={styles.etapaDesc}>{t('info_pessoal_desc')}</Text>
 
-            <Text style={styles.label}>Nome completo</Text>
+            <Text style={styles.label}>{t('nome_completo')}</Text>
             <TextInput style={styles.input} placeholder="Ex: Ana Maria Cossa" value={nome} onChangeText={setNome} />
 
-            <Text style={styles.label}>Província</Text>
+            <Text style={styles.label}>{t('provincia')}</Text>
             <TextInput style={styles.input} placeholder="Ex: Maputo" value={provincia} onChangeText={setProvincia} />
 
-            <Text style={styles.label}>Distrito</Text>
+            <Text style={styles.label}>{t('distrito')}</Text>
             <TextInput style={styles.input} placeholder="Ex: KaMpfumu" value={distrito} onChangeText={setDistrito} />
 
-            <Text style={styles.label}>Bairro</Text>
+            <Text style={styles.label}>{t('bairro')}</Text>
             <TextInput style={styles.input} placeholder="Ex: Maxaquene" value={bairro} onChangeText={setBairro} />
 
-            <Text style={styles.label}>Idiomas que fala</Text>
+            <Text style={styles.label}>{t('idiomas_que_fala')}</Text>
             <View style={styles.chipGrid}>
               {IDIOMAS_OPCOES.map(i => (
                 <TouchableOpacity key={i} style={[styles.chip, idiomas.includes(i) && styles.chipActive]}
@@ -174,25 +175,24 @@ export default function ProfileScreen() {
           </View>
         )}
 
-        {/* ── ETAPA 2: SERVIÇOS ── */}
         {etapa === 2 && (
           <View>
-            <Text style={styles.etapaTitulo}>Serviços e experiência</Text>
-            <Text style={styles.etapaDesc}>O que sabe fazer e como se apresenta</Text>
+            <Text style={styles.etapaTitulo}>{t('servicos_experiencia')}</Text>
+            <Text style={styles.etapaDesc}>{t('servicos_experiencia_desc')}</Text>
 
-            <Text style={styles.label}>Título do seu perfil</Text>
-            <Text style={styles.labelDesc}>Este título aparece no topo do seu perfil</Text>
+            <Text style={styles.label}>{t('titulo_perfil')}</Text>
+            <Text style={styles.labelDesc}>{t('titulo_perfil_desc')}</Text>
             <View style={styles.chipGrid}>
-              {TITULOS.map(t => (
-                <TouchableOpacity key={t} style={[styles.chip, tipoTitulo === t && styles.chipActive]}
-                  onPress={() => setTipoTitulo(t)}>
-                  <Text style={[styles.chipText, tipoTitulo === t && styles.chipTextActive]}>{t}</Text>
+              {TITULOS.map(titulo => (
+                <TouchableOpacity key={titulo} style={[styles.chip, tipoTitulo === titulo && styles.chipActive]}
+                  onPress={() => setTipoTitulo(titulo)}>
+                  <Text style={[styles.chipText, tipoTitulo === titulo && styles.chipTextActive]}>{titulo}</Text>
                 </TouchableOpacity>
               ))}
             </View>
 
-            <Text style={styles.label}>Serviços que oferece</Text>
-            <Text style={styles.labelDesc}>Seleccione todos os que se aplicam</Text>
+            <Text style={styles.label}>{t('servicos_oferece')}</Text>
+            <Text style={styles.labelDesc}>{t('seleccione_todos')}</Text>
             <View style={styles.chipGrid}>
               {SERVICOS_OPCOES.map(s => (
                 <TouchableOpacity key={s} style={[styles.chip, servicos.includes(s) && styles.chipActive]}
@@ -202,9 +202,9 @@ export default function ProfileScreen() {
               ))}
             </View>
 
-            <Text style={styles.label}>Anos de experiência</Text>
+            <Text style={styles.label}>{t('anos_experiencia')}</Text>
             <View style={styles.chipGrid}>
-              {['Menos de 1 ano', '1-2 anos', '3-5 anos', '6-10 anos', 'Mais de 10 anos'].map(e => (
+              {[t('menos_1_ano'), t('1_2_anos'), t('3_5_anos'), t('6_10_anos'), t('mais_10_anos')].map(e => (
                 <TouchableOpacity key={e} style={[styles.chip, experiencia === e && styles.chipActive]}
                   onPress={() => setExperiencia(e)}>
                   <Text style={[styles.chipText, experiencia === e && styles.chipTextActive]}>{e}</Text>
@@ -214,17 +214,16 @@ export default function ProfileScreen() {
           </View>
         )}
 
-        {/* ── ETAPA 3: REGIME ── */}
         {etapa === 3 && (
           <View>
-            <Text style={styles.etapaTitulo}>Regime e condições</Text>
-            <Text style={styles.etapaDesc}>Como prefere trabalhar e quanto espera ganhar</Text>
+            <Text style={styles.etapaTitulo}>{t('regime_condicoes')}</Text>
+            <Text style={styles.etapaDesc}>{t('regime_condicoes_desc')}</Text>
 
-            <Text style={styles.label}>Regime de trabalho</Text>
+            <Text style={styles.label}>{t('regime_trabalho')}</Text>
             {[
-              { val: 'nao_residente', titulo: 'Não residente', desc: 'Entra e sai no mesmo dia' },
-              { val: 'residente', titulo: 'Residente', desc: 'Dorme na casa do empregador' },
-              { val: 'ambos', titulo: 'Aceito os dois', desc: 'Flexível conforme oportunidade' },
+              { val: 'nao_residente', titulo: t('nao_residente'), desc: t('nao_residente_desc') },
+              { val: 'residente', titulo: t('residente'), desc: t('residente_desc') },
+              { val: 'ambos', titulo: t('aceito_ambos'), desc: t('aceito_ambos_desc') },
             ].map(op => (
               <TouchableOpacity key={op.val}
                 style={[styles.radioCard, regime === op.val && styles.radioCardActive]}
@@ -239,13 +238,13 @@ export default function ProfileScreen() {
               </TouchableOpacity>
             ))}
 
-            <Text style={[styles.label, { marginTop: 16 }]}>Tipo de horário</Text>
+            <Text style={[styles.label, { marginTop: 16 }]}>{t('tipo_horario')}</Text>
             <View style={styles.toggleRow}>
               {(['fixo', 'flexivel'] as const).map(h => (
                 <TouchableOpacity key={h} style={[styles.toggleBtn, horarioTipo === h && styles.toggleBtnActive]}
                   onPress={() => setHorarioTipo(h)}>
                   <Text style={[styles.toggleText, horarioTipo === h && styles.toggleTextActive]}>
-                    {h === 'fixo' ? 'Horário fixo' : 'Horário flexível'}
+                    {h === 'fixo' ? t('horario_fixo') : t('horario_flexivel')}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -254,11 +253,11 @@ export default function ProfileScreen() {
             {horarioTipo === 'fixo' && (
               <View style={styles.horarioRow}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.label}>Entrada</Text>
+                  <Text style={styles.label}>{t('entrada')}</Text>
                   <TextInput style={styles.input} placeholder="07:00" value={horarioEntrada} onChangeText={setHorarioEntrada} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.label}>Saída</Text>
+                  <Text style={styles.label}>{t('saida')}</Text>
                   <TextInput style={styles.input} placeholder="17:00" value={horarioSaida} onChangeText={setHorarioSaida} />
                 </View>
               </View>
@@ -266,18 +265,18 @@ export default function ProfileScreen() {
 
             {horarioTipo === 'flexivel' && (
               <View style={styles.notaInfo}>
-                <Text style={styles.notaInfoTexto}>💡 O horário será combinado directamente com o empregador.</Text>
+                <Text style={styles.notaInfoTexto}>💡 {t('horario_flexivel_nota')}</Text>
               </View>
             )}
 
-            <Text style={[styles.label, { marginTop: 16 }]}>Salário esperado (MZN/mês)</Text>
+            <Text style={[styles.label, { marginTop: 16 }]}>{t('salario_esperado')}</Text>
             <View style={styles.horarioRow}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.label}>Mínimo</Text>
+                <Text style={styles.label}>{t('minimo')}</Text>
                 <TextInput style={styles.input} placeholder="3500" keyboardType="numeric" value={salarioMin} onChangeText={setSalarioMin} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.label}>Máximo</Text>
+                <Text style={styles.label}>{t('maximo')}</Text>
                 <TextInput style={styles.input} placeholder="6000" keyboardType="numeric" value={salarioMax} onChangeText={setSalarioMax} />
               </View>
             </View>
@@ -285,30 +284,30 @@ export default function ProfileScreen() {
               <View style={[styles.checkbox, salarioNegociavel && styles.checkboxActive]}>
                 {salarioNegociavel && <Text style={styles.checkmark}>✓</Text>}
               </View>
-              <Text style={styles.checkLabel}>Salário negociável</Text>
+              <Text style={styles.checkLabel}>{t('salario_negociavel')}</Text>
             </TouchableOpacity>
 
             {(regime === 'residente' || regime === 'ambos') && (
               <View style={styles.cardGreen}>
-                <Text style={styles.sectionLabelGreen}>Condições como residente</Text>
+                <Text style={styles.sectionLabelGreen}>{t('condicoes_residente')}</Text>
                 <TouchableOpacity style={styles.checkRow} onPress={() => setQuartoIndividual(!quartoIndividual)}>
                   <View style={[styles.checkbox, quartoIndividual && styles.checkboxActive]}>
                     {quartoIndividual && <Text style={styles.checkmark}>✓</Text>}
                   </View>
-                  <Text style={styles.checkLabel}>Exige quarto individual</Text>
+                  <Text style={styles.checkLabel}>{t('exige_quarto')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.checkRow} onPress={() => setSaidaFimSemana(!saidaFimSemana)}>
                   <View style={[styles.checkbox, saidaFimSemana && styles.checkboxActive]}>
                     {saidaFimSemana && <Text style={styles.checkmark}>✓</Text>}
                   </View>
-                  <Text style={styles.checkLabel}>Saída ao fim de semana</Text>
+                  <Text style={styles.checkLabel}>{t('saida_fim_semana')}</Text>
                 </TouchableOpacity>
-                <Text style={[styles.label, { marginTop: 12 }]}>Refeições</Text>
+                <Text style={[styles.label, { marginTop: 12 }]}>{t('refeicoes')}</Text>
                 <View style={styles.chipGrid}>
                   {[
-                    { val: 'todas', label: 'Todas incluídas' },
-                    { val: 'negociar', label: 'A negociar' },
-                    { val: 'nenhuma', label: 'Nenhuma' },
+                    { val: 'todas', label: t('refeicoes_todas') },
+                    { val: 'negociar', label: t('a_negociar') },
+                    { val: 'nenhuma', label: t('refeicoes_nenhuma') },
                   ].map(op => (
                     <TouchableOpacity key={op.val} style={[styles.chip, refeicoes === op.val && styles.chipActive]}
                       onPress={() => setRefeicoes(op.val as any)}>
@@ -321,26 +320,29 @@ export default function ProfileScreen() {
           </View>
         )}
 
-        {/* ── ETAPA 4: CONDIÇÕES GERAIS ── */}
         {etapa === 4 && (
           <View>
-            <Text style={styles.etapaTitulo}>Condições gerais</Text>
-            <Text style={styles.etapaDesc}>Últimos detalhes para completar o seu perfil</Text>
+            <Text style={styles.etapaTitulo}>{t('condicoes_gerais')}</Text>
+            <Text style={styles.etapaDesc}>{t('condicoes_gerais_desc')}</Text>
 
-            <Text style={styles.label}>Deslocação</Text>
+            <Text style={styles.label}>{t('deslocacao')}</Text>
             <TouchableOpacity style={styles.checkRow} onPress={() => setDeslocacao(!deslocacao)}>
               <View style={[styles.checkbox, deslocacao && styles.checkboxActive]}>
                 {deslocacao && <Text style={styles.checkmark}>✓</Text>}
               </View>
-              <Text style={styles.checkLabel}>Aceito deslocar-me para outras zonas</Text>
+              <Text style={styles.checkLabel}>{t('aceito_deslocacao')}</Text>
             </TouchableOpacity>
             {deslocacao && (
-              <TextInput style={styles.input} placeholder="Ex: Toda a cidade, só Sommerschield..." value={areaDeslocacao} onChangeText={setAreaDeslocacao} />
+              <TextInput style={styles.input} placeholder={t('area_deslocacao_placeholder')} value={areaDeslocacao} onChangeText={setAreaDeslocacao} />
             )}
 
-            <Text style={[styles.label, { marginTop: 16 }]}>Animais em casa</Text>
+            <Text style={[styles.label, { marginTop: 16 }]}>{t('animais')}</Text>
             <View style={styles.chipGrid}>
-              {[{ val: 'sim', label: 'Aceito' }, { val: 'nao', label: 'Não aceito' }, { val: 'negociar', label: 'Depende' }].map(op => (
+              {[
+                { val: 'sim', label: t('aceito') },
+                { val: 'nao', label: t('nao_aceito') },
+                { val: 'negociar', label: t('depende') }
+              ].map(op => (
                 <TouchableOpacity key={op.val} style={[styles.chip, aceitaAnimais === op.val && styles.chipActive]}
                   onPress={() => setAceitaAnimais(op.val as any)}>
                   <Text style={[styles.chipText, aceitaAnimais === op.val && styles.chipTextActive]}>{op.label}</Text>
@@ -348,9 +350,13 @@ export default function ProfileScreen() {
               ))}
             </View>
 
-            <Text style={[styles.label, { marginTop: 16 }]}>Detergente de limpeza</Text>
+            <Text style={[styles.label, { marginTop: 16 }]}>{t('detergente_limpeza')}</Text>
             <View style={styles.chipGrid}>
-              {[{ val: 'empregador', label: 'Usa os do empregador' }, { val: 'proprio', label: 'Traz o próprio' }, { val: 'negociar', label: 'A negociar' }].map(op => (
+              {[
+                { val: 'empregador', label: t('usa_empregador') },
+                { val: 'proprio', label: t('traz_proprio') },
+                { val: 'negociar', label: t('a_negociar') }
+              ].map(op => (
                 <TouchableOpacity key={op.val} style={[styles.chip, detergenteLimpeza === op.val && styles.chipActive]}
                   onPress={() => setDetergenteLimpeza(op.val as any)}>
                   <Text style={[styles.chipText, detergenteLimpeza === op.val && styles.chipTextActive]}>{op.label}</Text>
@@ -358,9 +364,13 @@ export default function ProfileScreen() {
               ))}
             </View>
 
-            <Text style={[styles.label, { marginTop: 16 }]}>Detergente de roupa</Text>
+            <Text style={[styles.label, { marginTop: 16 }]}>{t('detergente_roupa')}</Text>
             <View style={styles.chipGrid}>
-              {[{ val: 'empregador', label: 'Usa os do empregador' }, { val: 'proprio', label: 'Traz o próprio' }, { val: 'negociar', label: 'A negociar' }].map(op => (
+              {[
+                { val: 'empregador', label: t('usa_empregador') },
+                { val: 'proprio', label: t('traz_proprio') },
+                { val: 'negociar', label: t('a_negociar') }
+              ].map(op => (
                 <TouchableOpacity key={op.val} style={[styles.chip, detergenteRoupa === op.val && styles.chipActive]}
                   onPress={() => setDetergenteRoupa(op.val as any)}>
                   <Text style={[styles.chipText, detergenteRoupa === op.val && styles.chipTextActive]}>{op.label}</Text>
@@ -368,9 +378,13 @@ export default function ProfileScreen() {
               ))}
             </View>
 
-            <Text style={[styles.label, { marginTop: 16 }]}>Disponibilidade para começar</Text>
+            <Text style={[styles.label, { marginTop: 16 }]}>{t('disponibilidade')}</Text>
             <View style={styles.chipGrid}>
-              {[{ val: 'imediata', label: 'Imediata' }, { val: '1semana', label: 'Em 1 semana' }, { val: '1mes', label: 'Em 1 mês' }].map(op => (
+              {[
+                { val: 'imediata', label: t('imediata') },
+                { val: '1semana', label: t('em_1_semana') },
+                { val: '1mes', label: t('em_1_mes') }
+              ].map(op => (
                 <TouchableOpacity key={op.val} style={[styles.chip, disponibilidade === op.val && styles.chipActive]}
                   onPress={() => setDisponibilidade(op.val as any)}>
                   <Text style={[styles.chipText, disponibilidade === op.val && styles.chipTextActive]}>{op.label}</Text>
@@ -378,14 +392,13 @@ export default function ProfileScreen() {
               ))}
             </View>
 
-            {/* CONDIÇÃO DE SAÚDE */}
             <View style={styles.saudeCard}>
-              <Text style={styles.saudeTitulo}>🏥 Condição de saúde</Text>
-              <Text style={styles.saudeDesc}>Tem alguma condição de saúde que considera relevante partilhar com o empregador? Esta informação é completamente opcional e confidencial.</Text>
+              <Text style={styles.saudeTitulo}>🏥 {t('condicao_saude')}</Text>
+              <Text style={styles.saudeDesc}>{t('condicao_saude_desc')}</Text>
               {[
-                { val: 'nenhuma', label: '✅ Não tenho nenhuma condição relevante' },
-                { val: 'prefiro_nao', label: '🔒 Prefiro não responder' },
-                { val: 'sim', label: '💬 Sim, quero partilhar' },
+                { val: 'nenhuma', label: '✅ ' + t('saude_nenhuma') },
+                { val: 'prefiro_nao', label: '🔒 ' + t('saude_prefiro_nao') },
+                { val: 'sim', label: '💬 ' + t('saude_sim') },
               ].map(op => (
                 <TouchableOpacity key={op.val}
                   style={[styles.saudeOpcao, condicaoSaude === op.val && styles.saudeOpcaoActive]}
@@ -399,26 +412,25 @@ export default function ProfileScreen() {
               {condicaoSaude === 'sim' && (
                 <TextInput
                   style={[styles.input, { marginTop: 8, height: 80, textAlignVertical: 'top' }]}
-                  placeholder="Descreva brevemente a sua condição de saúde..."
+                  placeholder={t('saude_descricao_placeholder')}
                   value={descricaoSaude}
                   onChangeText={setDescricaoSaude}
                   multiline
                 />
               )}
-              <Text style={styles.saudeNota}>🔒 Esta informação só é partilhada com o empregador após um match.</Text>
+              <Text style={styles.saudeNota}>🔒 {t('saude_nota')}</Text>
             </View>
 
             <View style={styles.nota}>
-              <Text style={styles.notaTexto}>✅ O seu perfil ficará visível para empregadores assim que guardar.</Text>
+              <Text style={styles.notaTexto}>✅ {t('perfil_visivel_nota')}</Text>
             </View>
           </View>
         )}
 
-        {/* NAVEGAÇÃO */}
         <View style={styles.navRow}>
           {etapa > 1 && (
             <TouchableOpacity style={styles.btnVoltar} onPress={() => setEtapa(etapa - 1)}>
-              <Text style={styles.btnVoltarText}>← Anterior</Text>
+              <Text style={styles.btnVoltarText}>← {t('anterior')}</Text>
             </TouchableOpacity>
           )}
           <TouchableOpacity
@@ -429,7 +441,7 @@ export default function ProfileScreen() {
               else guardarPerfil();
             }}>
             <Text style={styles.btnAvancarText}>
-              {loading ? 'A guardar...' : etapa === 4 ? '✓ Guardar perfil' : 'Seguinte >'}
+              {loading ? t('carregando') : etapa === 4 ? '✓ ' + t('guardar_perfil') : t('seguinte') + ' >'}
             </Text>
           </TouchableOpacity>
         </View>

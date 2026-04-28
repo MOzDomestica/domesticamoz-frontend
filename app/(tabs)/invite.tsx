@@ -1,9 +1,9 @@
+import { getLingua, t } from '@/constants/i18n';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
-// Códigos de convite válidos — mude estes códigos conforme quiser
 const CODIGOS_VALIDOS = [
   'MOZDOM2026',
   'TESTE123',
@@ -18,10 +18,17 @@ export default function InviteScreen() {
   const router = useRouter();
   const [codigo, setCodigo] = useState('');
   const [loading, setLoading] = useState(false);
+  const [, setLinguaActual] = useState('pt');
+
+  useFocusEffect(
+    useCallback(() => {
+      getLingua().then(l => setLinguaActual(l));
+    }, [])
+  );
 
   const verificarCodigo = async () => {
     if (!codigo.trim()) {
-      Alert.alert('Erro', 'Introduza um código de convite');
+      Alert.alert(t('erro'), t('introduza_codigo'));
       return;
     }
 
@@ -31,28 +38,26 @@ export default function InviteScreen() {
     if (CODIGOS_VALIDOS.includes(codigoUpper)) {
       await AsyncStorage.setItem('codigo_convite_valido', 'true');
       await AsyncStorage.setItem('codigo_convite_usado', codigoUpper);
-      Alert.alert('✅ Código válido!', 'Bem-vindo à DomésticaMoz! Pode criar a sua conta.', [
-        { text: 'Continuar', onPress: () => router.replace('/') }
+      Alert.alert('✅ ' + t('codigo_valido'), t('bem_vindo'), [
+        { text: t('seguinte'), onPress: () => router.replace('/') }
       ]);
     } else {
-      Alert.alert('❌ Código inválido', 'Este código de convite não existe ou já foi usado. Peça um código a um amigo ou aguarde o lançamento oficial.');
+      Alert.alert('❌ ' + t('codigo_invalido'), t('codigo_invalido_desc'));
     }
     setLoading(false);
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.logo}>DomésticaMoz</Text>
+      <Text style={styles.logo}>{t('app_nome')}</Text>
       <Text style={styles.icon}>🔐</Text>
-      <Text style={styles.titulo}>Acesso por convite</Text>
-      <Text style={styles.desc}>
-        A DomésticaMoz está em fase de teste. Para aceder precisa de um código de convite.
-      </Text>
+      <Text style={styles.titulo}>{t('acesso_convite')}</Text>
+      <Text style={styles.desc}>{t('acesso_convite_desc')}</Text>
 
       <View style={styles.inputContainer}>
         <TextInput
           style={styles.input}
-          placeholder="Ex: MOZDOM2026"
+          placeholder={t('codigo_placeholder')}
           value={codigo}
           onChangeText={setCodigo}
           autoCapitalize="characters"
@@ -64,13 +69,11 @@ export default function InviteScreen() {
         style={[styles.btn, loading && styles.btnDisabled]}
         onPress={verificarCodigo}
         disabled={loading}>
-        <Text style={styles.btnText}>{loading ? 'A verificar...' : 'Entrar com código'}</Text>
+        <Text style={styles.btnText}>{loading ? t('carregando') : t('entrar_codigo')}</Text>
       </TouchableOpacity>
 
       <View style={styles.notaBox}>
-        <Text style={styles.notaTexto}>
-          💡 Não tem código? Partilhe a app com amigos e peça-lhes que lhe enviem o seu código de convite.
-        </Text>
+        <Text style={styles.notaTexto}>💡 {t('nao_tem_codigo')}</Text>
       </View>
     </View>
   );

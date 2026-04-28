@@ -1,3 +1,4 @@
+import { getLingua, t } from '@/constants/i18n';
 import { supabase } from '@/constants/supabase';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -36,11 +37,13 @@ export default function MessagesScreen() {
   const [novaMensagem, setNovaMensagem] = useState('');
   const [loading, setLoading] = useState(true);
   const [enviando, setEnviando] = useState(false);
+  const [, setLinguaActual] = useState('pt');
   const scrollRef = useRef<ScrollView>(null);
   const intervalRef = useRef<any>(null);
 
   useEffect(() => {
     iniciar();
+    getLingua().then(l => setLinguaActual(l));
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
@@ -154,7 +157,7 @@ export default function MessagesScreen() {
     return (
       <View style={styles.centrado}>
         <ActivityIndicator size="large" color="#1D9E75" />
-        <Text style={styles.loadingText}>A carregar mensagens...</Text>
+        <Text style={styles.loadingText}>{t('carregando')}</Text>
       </View>
     );
   }
@@ -163,13 +166,13 @@ export default function MessagesScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.headerLista}>
-          <Text style={styles.headerListaTitulo}>Mensagens</Text>
+          <Text style={styles.headerListaTitulo}>{t('mensagens')}</Text>
         </View>
         {conversas.length === 0 ? (
           <View style={styles.vazio}>
             <Text style={styles.vazioBig}>💬</Text>
-            <Text style={styles.vazioText}>Ainda não tem conversas.</Text>
-            <Text style={styles.vazioSub}>Contacte uma trabalhadora nos Matches!</Text>
+            <Text style={styles.vazioText}>{t('sem_conversas')}</Text>
+            <Text style={styles.vazioSub}>{t('sem_conversas_desc')}</Text>
           </View>
         ) : (
           conversas.map(c => (
@@ -183,7 +186,7 @@ export default function MessagesScreen() {
                 </Text>
               </View>
               <View style={styles.conversaInfo}>
-                <Text style={styles.conversaNome}>{c.outra_pessoa?.nome_completo ?? 'Utilizador'}</Text>
+                <Text style={styles.conversaNome}>{c.outra_pessoa?.nome_completo ?? t('utilizador')}</Text>
                 <Text style={styles.conversaTipo}>{c.outra_pessoa?.tipo?.replace(/_/g, ' ')}</Text>
               </View>
             </TouchableOpacity>
@@ -208,7 +211,7 @@ export default function MessagesScreen() {
             </View>
             <View>
               <Text style={styles.headerNome}>
-                {conversaActiva.outra_pessoa?.nome_completo ?? 'Utilizador'}
+                {conversaActiva.outra_pessoa?.nome_completo ?? t('utilizador')}
               </Text>
               <Text style={styles.headerTipo}>
                 {conversaActiva.outra_pessoa?.tipo?.replace(/_/g, ' ')}
@@ -216,14 +219,14 @@ export default function MessagesScreen() {
             </View>
           </View>
           <TouchableOpacity style={styles.btnContrato} onPress={() => router.push('/(tabs)/contract' as any)}>
-            <Text style={styles.btnContratoText}>Contrato</Text>
+            <Text style={styles.btnContratoText}>{t('contrato')}</Text>
           </TouchableOpacity>
         </View>
 
         <ScrollView ref={scrollRef} contentContainerStyle={styles.mensagensContainer}>
           {mensagens.length === 0 && (
             <View style={styles.semMensagens}>
-              <Text style={styles.semMensagensTexto}>Ainda não há mensagens. Diga olá! 👋</Text>
+              <Text style={styles.semMensagensTexto}>{t('sem_mensagens_chat')}</Text>
             </View>
           )}
           {mensagens.map(m => (
@@ -243,7 +246,7 @@ export default function MessagesScreen() {
         <View style={styles.inputRow}>
           <TextInput
             style={styles.input}
-            placeholder="Escreva uma mensagem..."
+            placeholder={t('escreva_mensagem')}
             value={novaMensagem}
             onChangeText={setNovaMensagem}
             multiline

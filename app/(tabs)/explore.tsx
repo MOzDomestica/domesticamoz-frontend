@@ -1,7 +1,8 @@
+import { getLingua, t } from '@/constants/i18n';
 import { supabase } from '@/constants/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 const CODIGOS_VALIDOS = [
@@ -18,15 +19,22 @@ export default function LoginScreen() {
   const [telefone, setTelefone] = useState('');
   const [codigo, setCodigo] = useState('');
   const [loading, setLoading] = useState(false);
+  const [, setLinguaActual] = useState('pt');
   const router = useRouter();
+
+  useFocusEffect(
+    useCallback(() => {
+      getLingua().then(l => setLinguaActual(l));
+    }, [])
+  );
 
   const entrar = async () => {
     if (telefone.length < 9) {
-      Alert.alert('Erro', 'Introduza um número válido');
+      Alert.alert(t('erro'), 'Introduza um número válido');
       return;
     }
     if (!codigo.trim()) {
-      Alert.alert('Erro', 'Introduza o seu código de convite');
+      Alert.alert(t('erro'), 'Introduza o seu código de convite');
       return;
     }
 
@@ -38,30 +46,30 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
-      const numeroCompleto = '+258' + telefone;
+      const numeroCompleto = '258' + telefone;
+      const emailFicticio = `${numeroCompleto}@domesticamoz.app`;
+      const password = codigoUpper + numeroCompleto;
 
-      // Tentar fazer login — se o utilizador já existe
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-        phone: numeroCompleto,
-        password: codigoUpper,
+      const { data: signInData } = await supabase.auth.signInWithPassword({
+        email: emailFicticio,
+        password: password,
       });
 
       if (signInData?.user) {
-        // Login bem sucedido
         await AsyncStorage.setItem('codigo_convite_valido', 'true');
         await AsyncStorage.setItem('codigo_convite_usado', codigoUpper);
         router.replace('/');
         return;
       }
 
-      // Se não existe, criar conta nova
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        phone: numeroCompleto,
-        password: codigoUpper,
+        email: emailFicticio,
+        password: password,
+        options: { data: { telefone: numeroCompleto, codigo_convite: codigoUpper } }
       });
 
       if (signUpError) {
-        Alert.alert('Erro', signUpError.message);
+        Alert.alert(t('erro'), signUpError.message);
         return;
       }
 
@@ -71,7 +79,7 @@ export default function LoginScreen() {
         router.replace('/');
       }
     } catch (e) {
-      Alert.alert('Erro', 'Sem ligação ao servidor');
+      Alert.alert(t('erro'), 'Sem ligação ao servidor');
     } finally {
       setLoading(false);
     }
@@ -80,11 +88,11 @@ export default function LoginScreen() {
   return (
     <View style={styles.container}>
       <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-        <Text style={styles.backText}>← Voltar</Text>
+        <Text style={styles.backText}>← {t('voltar')}</Text>
       </TouchableOpacity>
 
-      <Text style={styles.title}>Entrar</Text>
-      <Text style={styles.subtitle}>Introduza o seu número e código de convite</Text>
+      <Text style={styles.title}>{t('entrar')}</Text>
+      <Text style={styles.subtitle}>{t('introducir_numero')}</Text>
 
       <View style={styles.phoneRow}>
         <View style={styles.prefixBox}>
@@ -102,7 +110,7 @@ export default function LoginScreen() {
 
       <TextInput
         style={styles.inputCodigo}
-        placeholder="Código de convite (ex: MOZDOM2026)"
+        placeholder={t('codigo_placeholder')}
         value={codigo}
         onChangeText={setCodigo}
         autoCapitalize="characters"
@@ -111,7 +119,7 @@ export default function LoginScreen() {
 
       <View style={styles.notaBox}>
         <Text style={styles.notaTexto}>
-          🔐 Durante a fase de testes, use o código de convite que recebeu em vez de SMS.
+          🔐 {t('nota_fase_testes')}
         </Text>
       </View>
 
@@ -119,7 +127,7 @@ export default function LoginScreen() {
         style={[styles.btn, loading && styles.btnDisabled]}
         onPress={entrar}
         disabled={loading}>
-        <Text style={styles.btnText}>{loading ? 'A entrar...' : 'Entrar'}</Text>
+        <Text style={styles.btnText}>{loading ? t('carregando') : t('entrar')}</Text>
       </TouchableOpacity>
     </View>
   );

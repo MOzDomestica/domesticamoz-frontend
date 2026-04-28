@@ -1,10 +1,11 @@
+import { getLingua, t } from '@/constants/i18n';
 import {
-    Notificacao,
-    formatarData,
-    getIconeNotificacao,
-    getNotificacoes,
-    limparNotificacoes,
-    marcarTodasLidas,
+  Notificacao,
+  formatarData,
+  getIconeNotificacao,
+  getNotificacoes,
+  limparNotificacoes,
+  marcarTodasLidas,
 } from '@/constants/notifications';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
@@ -12,10 +13,12 @@ import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-nati
 
 export default function NotificationsScreen() {
   const [notificacoes, setNotificacoes] = useState<Notificacao[]>([]);
+  const [, setLinguaActual] = useState('pt');
 
   useFocusEffect(
     useCallback(() => {
       carregarNotificacoes();
+      getLingua().then(l => setLinguaActual(l));
     }, [])
   );
 
@@ -30,7 +33,6 @@ export default function NotificationsScreen() {
     setNotificacoes([]);
   };
 
-  // Notificações de exemplo para demonstração
   const adicionarExemplos = async () => {
     const { adicionarNotificacao } = await import('@/constants/notifications');
     await adicionarNotificacao('match', 'Novo match!', 'Ana Maria Cossa é compatível com o seu anúncio.');
@@ -43,10 +45,10 @@ export default function NotificationsScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.titulo}>Notificações</Text>
+        <Text style={styles.titulo}>{t('notificacoes')}</Text>
         {notificacoes.length > 0 && (
           <TouchableOpacity onPress={limpar}>
-            <Text style={styles.limpar}>Limpar tudo</Text>
+            <Text style={styles.limpar}>{t('limpar_tudo')}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -55,10 +57,10 @@ export default function NotificationsScreen() {
         {notificacoes.length === 0 ? (
           <View style={styles.vazio}>
             <Text style={styles.vazioIcone}>🔔</Text>
-            <Text style={styles.vazioTitulo}>Sem notificações</Text>
-            <Text style={styles.vazioDesc}>As suas notificações aparecerão aqui.</Text>
+            <Text style={styles.vazioTitulo}>{t('sem_notificacoes')}</Text>
+            <Text style={styles.vazioDesc}>{t('notificacoes_desc')}</Text>
             <TouchableOpacity style={styles.btnTeste} onPress={adicionarExemplos}>
-              <Text style={styles.btnTesteText}>Ver exemplos</Text>
+              <Text style={styles.btnTesteText}>{t('ver_exemplos')}</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -88,16 +90,13 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 24, paddingTop: 60, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f0f0ea' },
   titulo: { fontSize: 24, fontWeight: 'bold', color: '#222' },
   limpar: { fontSize: 14, color: '#c0392b' },
-
   lista: { padding: 16 },
-
   vazio: { alignItems: 'center', paddingTop: 80 },
   vazioIcone: { fontSize: 56, marginBottom: 16 },
   vazioTitulo: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 8 },
   vazioDesc: { fontSize: 14, color: '#888', textAlign: 'center', marginBottom: 24 },
   btnTeste: { backgroundColor: '#1D9E75', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20 },
   btnTesteText: { color: '#fff', fontSize: 14, fontWeight: '600' },
-
   card: { backgroundColor: '#fff', borderRadius: 14, padding: 14, marginBottom: 10, flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   cardNaoLido: { backgroundColor: '#f0faf5', borderLeftWidth: 3, borderLeftColor: '#1D9E75' },
   cardIcone: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#e8f5f0', alignItems: 'center', justifyContent: 'center' },

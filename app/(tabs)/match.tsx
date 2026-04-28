@@ -1,7 +1,8 @@
 import { encontrarMatches } from '@/constants/constants/matching';
+import { getLingua, t } from '@/constants/i18n';
 import { supabase } from '@/constants/supabase';
-import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface Match {
@@ -36,6 +37,13 @@ export default function MatchesScreen() {
   const [anuncioId, setAnuncioId] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [, setLinguaActual] = useState('pt');
+
+  useFocusEffect(
+    useCallback(() => {
+      getLingua().then(l => setLinguaActual(l));
+    }, [])
+  );
 
   useEffect(() => {
     carregarDados();
@@ -58,7 +66,7 @@ export default function MatchesScreen() {
         .limit(1);
 
       if (!anuncios || anuncios.length === 0) {
-        setErro('Ainda não tem anúncios activos.');
+        setErro(t('sem_anuncios'));
         setLoading(false);
         return;
       }
@@ -67,7 +75,7 @@ export default function MatchesScreen() {
       setAnuncioId(idAnuncio);
       await carregarMatches(idAnuncio);
     } catch (e) {
-      setErro('Erro ao carregar dados.');
+      setErro(t('erro_carregar'));
     } finally {
       setLoading(false);
     }
@@ -92,7 +100,7 @@ export default function MatchesScreen() {
       .order('score_compatibilidade', { ascending: false });
 
     if (error) {
-      Alert.alert('Erro matches', error.message);
+      Alert.alert(t('erro'), error.message);
       return;
     }
     if (data) setMatches(data as Match[]);
@@ -106,8 +114,8 @@ export default function MatchesScreen() {
       await encontrarMatches(anuncioId);
       await carregarMatches(anuncioId);
     } catch (e: any) {
-      Alert.alert('Erro detalhado', e?.message ?? JSON.stringify(e));
-      setErro('Erro ao calcular matches.');
+      Alert.alert(t('erro'), e?.message ?? JSON.stringify(e));
+      setErro(t('erro_calcular_matches'));
     } finally {
       setCalculando(false);
     }
@@ -118,11 +126,10 @@ export default function MatchesScreen() {
     try {
       const trabalhadoraUserId = match.perfis_trabalhadoras?.utilizadores?.id;
       if (!trabalhadoraUserId) {
-        Alert.alert('Erro', 'Não foi possível encontrar a trabalhadora.');
+        Alert.alert(t('erro'), t('erro_encontrar_trabalhadora'));
         return;
       }
 
-      // Verificar se já existe conversa para este match
       const { data: conversaExistente } = await supabase
         .from('conversas')
         .select('id')
@@ -134,7 +141,6 @@ export default function MatchesScreen() {
       if (conversaExistente) {
         conversaId = conversaExistente.id;
       } else {
-        // Criar nova conversa
         const { data: novaConversa, error } = await supabase
           .from('conversas')
           .insert({
@@ -146,13 +152,12 @@ export default function MatchesScreen() {
           .single();
 
         if (error || !novaConversa) {
-          Alert.alert('Erro', error?.message ?? 'Erro ao criar conversa.');
+          Alert.alert(t('erro'), error?.message ?? t('erro_criar_conversa'));
           return;
         }
 
         conversaId = novaConversa.id;
 
-        // Actualizar estado do match para "contactado"
         await supabase
           .from('matches')
           .update({ estado: 'contactado' })
@@ -161,7 +166,7 @@ export default function MatchesScreen() {
 
       router.push(`/(tabs)/messages?conversa_id=${conversaId}` as any);
     } catch (e: any) {
-      Alert.alert('Erro', e?.message ?? 'Erro ao contactar.');
+      Alert.alert(t('erro'), e?.message ?? t('erro_contactar'));
     }
   }
 
@@ -172,9 +177,9 @@ export default function MatchesScreen() {
   }
 
   function labelScore(score: number) {
-    if (score >= 80) return 'Excelente';
-    if (score >= 60) return 'Bom';
-    return 'Razoável';
+    if (score >= 80) return t('excelente');
+    if (score >= 60) return t('bom');
+    return t('razoavel');
   }
 
   function iniciaisNome(nome: string | undefined) {
@@ -183,25 +188,25 @@ export default function MatchesScreen() {
   }
 
   function formatSalario(min: number | null, max: number | null) {
-    if (!min && !max) return 'A negociar';
+    if (!min && !max) return t('a_negociar');
     if (min && max) return `${min.toLocaleString()} – ${max.toLocaleString()} MZN`;
-    if (min) return `A partir de ${min.toLocaleString()} MZN`;
-    return `Até ${max!.toLocaleString()} MZN`;
+    if (min) return `${t('a_partir_de')} ${min.toLocaleString()} MZN`;
+    return `${t('ate')} ${max!.toLocaleString()} MZN`;
   }
 
   if (loading) {
     return (
       <View style={styles.centrado}>
         <ActivityIndicator size="large" color="#1D9E75" />
-        <Text style={styles.loadingText}>A carregar matches...</Text>
+        <Text style={styles.loadingText}>{t('carregando')}</Text>
       </View>
     );
   }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.titulo}>Matches</Text>
-      <Text style={styles.subtitulo}>Trabalhadoras compatíveis com o seu anúncio</Text>
+      <Text style={styles.titulo}>{t('matches')}</Text>
+      <Text style={styles.subtitulo}>{t('matches_desc')}</Text>
 
       <TouchableOpacity
         style={[styles.btnCalcular, calculando && styles.btnDisabled]}
@@ -209,7 +214,7 @@ export default function MatchesScreen() {
         disabled={calculando || !anuncioId}>
         {calculando
           ? <ActivityIndicator size="small" color="#fff" />
-          : <Text style={styles.btnCalcularText}>🔍 Procurar novas matches</Text>
+          : <Text style={styles.btnCalcularText}>🔍 {t('procurar_matches')}</Text>
         }
       </TouchableOpacity>
 
@@ -222,20 +227,20 @@ export default function MatchesScreen() {
       {matches.length === 0 && !erro && (
         <View style={styles.vazio}>
           <Text style={styles.vazioBig}>🔍</Text>
-          <Text style={styles.vazioText}>Ainda não há matches.</Text>
-          <Text style={styles.vazioSub}>Clique em "Procurar novas matches" para começar.</Text>
+          <Text style={styles.vazioText}>{t('sem_matches')}</Text>
+          <Text style={styles.vazioSub}>{t('sem_matches_desc')}</Text>
         </View>
       )}
 
       {matches.map((match) => {
-        const t = match.perfis_trabalhadoras;
-        const nome = t?.utilizadores?.nome_completo ?? 'Trabalhadora';
+        const trabalhadora = match.perfis_trabalhadoras;
+        const nome = trabalhadora?.utilizadores?.nome_completo ?? 'Trabalhadora';
         const score = match.score_compatibilidade ?? 0;
         return (
           <TouchableOpacity
             key={match.id}
             style={styles.card}
-            onPress={() => router.push(`/worker/${t?.id}` as any)}>
+            onPress={() => router.push(`/worker/${trabalhadora?.id}` as any)}>
 
             <View style={styles.cardHeader}>
               <View style={styles.avatar}>
@@ -243,13 +248,13 @@ export default function MatchesScreen() {
               </View>
               <View style={styles.cardInfo}>
                 <Text style={styles.cardNome}>{nome}</Text>
-                <Text style={styles.cardTipo}>{t?.tipo_trabalhadora?.replace(/_/g, ' ')}</Text>
+                <Text style={styles.cardTipo}>{trabalhadora?.tipo_trabalhadora?.replace(/_/g, ' ')}</Text>
                 <Text style={styles.cardRegime}>
-                  {t?.regime_trabalho === 'residente'
-                    ? '🏠 Residente'
-                    : t?.regime_trabalho === 'ambos'
-                    ? '🔄 Ambos'
-                    : '🚶 Não residente'}
+                  {trabalhadora?.regime_trabalho === 'residente'
+                    ? '🏠 ' + t('residente')
+                    : trabalhadora?.regime_trabalho === 'ambos'
+                    ? '🔄 ' + t('ambos')
+                    : '🚶 ' + t('nao_residente')}
                 </Text>
               </View>
               <View style={[styles.scoreBadge, { backgroundColor: corScore(score) }]}>
@@ -262,23 +267,25 @@ export default function MatchesScreen() {
               <View style={styles.detalheItem}>
                 <Text style={styles.detalheIcon}>⭐</Text>
                 <Text style={styles.detalheTexto}>
-                  {t?.avaliacao_media ? `${t.avaliacao_media} (${t.total_avaliacoes} aval.)` : 'Sem avaliações'}
+                  {trabalhadora?.avaliacao_media
+                    ? `${trabalhadora.avaliacao_media} (${trabalhadora.total_avaliacoes} ${t('avaliacoes')})`
+                    : t('sem_avaliacoes')}
                 </Text>
               </View>
               <View style={styles.detalheItem}>
                 <Text style={styles.detalheIcon}>💼</Text>
-                <Text style={styles.detalheTexto}>{t?.anos_experiencia ?? 0} anos exp.</Text>
+                <Text style={styles.detalheTexto}>{trabalhadora?.anos_experiencia ?? 0} {t('anos_exp')}</Text>
               </View>
               <View style={styles.detalheItem}>
                 <Text style={styles.detalheIcon}>💰</Text>
                 <Text style={styles.detalheTexto}>
-                  {formatSalario(t?.salario_minimo ?? null, t?.salario_maximo ?? null)}
+                  {formatSalario(trabalhadora?.salario_minimo ?? null, trabalhadora?.salario_maximo ?? null)}
                 </Text>
               </View>
             </View>
 
-            {t?.descricao && (
-              <Text style={styles.descricao} numberOfLines={2}>{t.descricao}</Text>
+            {trabalhadora?.descricao && (
+              <Text style={styles.descricao} numberOfLines={2}>{trabalhadora.descricao}</Text>
             )}
 
             <View style={styles.barraFundo}>
@@ -287,11 +294,11 @@ export default function MatchesScreen() {
                 backgroundColor: corScore(score)
               }]} />
             </View>
-            <Text style={styles.barraTexto}>Compatibilidade: {Math.round(score)}%</Text>
+            <Text style={styles.barraTexto}>{t('compatibilidade')}: {Math.round(score)}%</Text>
 
             <View style={styles.cardBtns}>
               <TouchableOpacity style={styles.btnRecusar}>
-                <Text style={styles.btnRecusarText}>✕ Recusar</Text>
+                <Text style={styles.btnRecusarText}>✕ {t('recusar')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.btnContactar}
@@ -299,7 +306,7 @@ export default function MatchesScreen() {
                   e.stopPropagation();
                   contactar(match);
                 }}>
-                <Text style={styles.btnContactarText}>💬 Contactar</Text>
+                <Text style={styles.btnContactarText}>💬 {t('contactar')}</Text>
               </TouchableOpacity>
             </View>
           </TouchableOpacity>
