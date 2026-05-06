@@ -1,11 +1,11 @@
 import { getLingua, t } from '@/constants/i18n';
 import {
-  Notificacao,
-  formatarData,
-  getIconeNotificacao,
-  getNotificacoes,
-  limparNotificacoes,
-  marcarTodasLidas,
+    Notificacao,
+    formatarData,
+    getIconeNotificacao,
+    getNotificacoes,
+    limparNotificacoes,
+    marcarTodasLidas,
 } from '@/constants/notifications';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
@@ -95,10 +95,10 @@ const styles = StyleSheet.create({
   vazioIcone: { fontSize: 56, marginBottom: 16 },
   vazioTitulo: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 8 },
   vazioDesc: { fontSize: 14, color: '#888', textAlign: 'center', marginBottom: 24 },
-  btnTeste: { backgroundColor: '#1D9E75', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20 },
+  btnTeste: { backgroundColor: '#1F8A70', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20 },
   btnTesteText: { color: '#fff', fontSize: 14, fontWeight: '600' },
   card: { backgroundColor: '#fff', borderRadius: 14, padding: 14, marginBottom: 10, flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  cardNaoLido: { backgroundColor: '#f0faf5', borderLeftWidth: 3, borderLeftColor: '#1D9E75' },
+  cardNaoLido: { backgroundColor: '#f0faf5', borderLeftWidth: 3, borderLeftColor: '#1F8A70' },
   cardIcone: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#e8f5f0', alignItems: 'center', justifyContent: 'center' },
   icone: { fontSize: 20 },
   cardInfo: { flex: 1 },
@@ -106,5 +106,5 @@ const styles = StyleSheet.create({
   cardTitulo: { fontSize: 14, fontWeight: '700', color: '#222' },
   cardData: { fontSize: 11, color: '#aaa' },
   cardMensagem: { fontSize: 13, color: '#555', lineHeight: 20 },
-  ponto: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#1D9E75', marginTop: 4 },
+  ponto: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#1F8A70', marginTop: 4 },
 });

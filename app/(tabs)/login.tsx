@@ -1,54 +1,51 @@
-import { getLingua, t } from '@/constants/i18n';
 import { supabase } from '@/constants/supabase';
 import { Palette, Radius, Shadows, Spacing } from '@/constants/theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useRouter } from 'expo-router';
+import { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function LoginScreen() {
-  const [telefone, setTelefone] = useState('');
-  const [senha, setSenha] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [, setLinguaActual] = useState('pt');
   const router = useRouter();
-
-  useFocusEffect(
-    useCallback(() => {
-      getLingua().then(l => setLinguaActual(l));
-    }, [])
-  );
+  const [telefone, setTelefone] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [mostrarPass, setMostrarPass] = useState(false);
 
   const entrar = async () => {
     if (telefone.length < 9) {
-      Alert.alert(t('erro'), 'Introduza um número válido com 9 dígitos');
+      Alert.alert('Erro', 'Introduza um número válido com 9 dígitos');
       return;
     }
-    if (senha.length < 6) {
-      Alert.alert(t('erro'), 'A senha deve ter pelo menos 6 caracteres');
+    if (password.length < 6) {
+      Alert.alert('Erro', 'A palavra-passe deve ter pelo menos 6 caracteres');
       return;
     }
 
     setLoading(true);
     try {
-      const numeroCompleto = '258' + telefone;
-      const emailFicticio = `${numeroCompleto}@domesticamoz.app`;
+      const numero = `258${telefone.replace(/\D/g, '')}`;
+      const email = `${numero}@domesticamoz.app`;
 
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: emailFicticio,
-        password: senha,
-      });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
       if (error || !data?.user) {
-        Alert.alert('❌ Erro', 'Número ou senha incorrectos. Verifique os seus dados.');
+        Alert.alert('❌ Erro', 'Número ou palavra-passe incorrectos. Verifique os seus dados.');
         return;
       }
 
+      const { data: utilizador } = await supabase
+        .from('utilizadores')
+        .select('tipo')
+        .eq('id', data.user.id)
+        .single();
+
+      await AsyncStorage.setItem('tipoUser', utilizador?.tipo ?? 'trabalhadora');
       await AsyncStorage.setItem('codigo_convite_valido', 'true');
       router.replace('/(tabs)/settings');
 
-    } catch (e) {
-      Alert.alert(t('erro'), t('sem_ligacao'));
+    } catch {
+      Alert.alert('Erro', 'Sem ligação ao servidor.');
     } finally {
       setLoading(false);
     }
@@ -61,7 +58,7 @@ export default function LoginScreen() {
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
 
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backText}>← {t('voltar')}</Text>
+          <Text style={styles.backText}>← Voltar</Text>
         </TouchableOpacity>
 
         <View style={styles.headerSection}>
@@ -69,7 +66,7 @@ export default function LoginScreen() {
             <Text style={styles.icone}>👋</Text>
           </View>
           <Text style={styles.titulo}>Bem-vindo de volta</Text>
-          <Text style={styles.subtitulo}>Entre com o seu número e senha</Text>
+          <Text style={styles.subtitulo}>Entre com o seu número e palavra-passe</Text>
         </View>
 
         <View style={styles.formSection}>
@@ -88,21 +85,28 @@ export default function LoginScreen() {
             />
           </View>
 
-          <Text style={styles.label}>Senha</Text>
-          <TextInput
-            style={styles.inputSenha}
-            placeholder="••••••"
-            value={senha}
-            onChangeText={setSenha}
-            secureTextEntry
-            maxLength={20}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
+          <Text style={styles.label}>Palavra-passe</Text>
+          <View style={styles.passwordRow}>
+            <TextInput
+              style={[styles.input, { flex: 1, marginBottom: 0 }]}
+              placeholder="••••••"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!mostrarPass}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <TouchableOpacity
+              style={styles.olhoBtn}
+              onPress={() => setMostrarPass(!mostrarPass)}>
+              <Text style={styles.olhoText}>{mostrarPass ? '🙈' : '👁️'}</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={{ height: 16 }} />
 
           <View style={styles.notaBox}>
             <Text style={styles.notaTexto}>
-              🔐 A sua senha é o código de convite seguido do seu número completo. Ex: MOZDOM2026258841234567
+              🔐 A sua palavra-passe é o código de convite seguido do número completo. Ex: MOZDOM2026258841234567
             </Text>
           </View>
 
@@ -111,7 +115,7 @@ export default function LoginScreen() {
             onPress={entrar}
             disabled={loading}>
             <Text style={styles.btnEntrarTexto}>
-              {loading ? t('carregando') : t('entrar')}
+              {loading ? 'A entrar...' : 'Entrar'}
             </Text>
           </TouchableOpacity>
 
@@ -119,7 +123,7 @@ export default function LoginScreen() {
             onPress={() => router.push('/(tabs)/register')}
             style={styles.linkCriar}>
             <Text style={styles.linkCriarTexto}>Não tem conta? </Text>
-            <Text style={styles.linkCriarDestaque}>{t('criar_conta')}</Text>
+            <Text style={styles.linkCriarDestaque}>Criar conta</Text>
           </TouchableOpacity>
         </View>
 
@@ -181,6 +185,16 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: Spacing.md,
   },
+  passwordRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: Palette.borda,
+    borderRadius: Radius.md,
+    backgroundColor: Palette.branco,
+    paddingRight: 8,
+    marginBottom: 4,
+  },
   prefixBox: {
     backgroundColor: Palette.cinzaClaro,
     borderRadius: Radius.md,
@@ -199,18 +213,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Palette.textoPrincipal,
     backgroundColor: Palette.branco,
-  },
-  inputSenha: {
-    borderWidth: 1.5,
-    borderColor: Palette.borda,
-    borderRadius: Radius.md,
-    padding: 14,
-    fontSize: 16,
-    color: Palette.textoPrincipal,
-    backgroundColor: Palette.branco,
     marginBottom: Spacing.md,
-    letterSpacing: 4,
   },
+  olhoBtn: { padding: 10 },
+  olhoText: { fontSize: 18 },
   notaBox: {
     backgroundColor: Palette.verdeClaro,
     borderRadius: Radius.md,

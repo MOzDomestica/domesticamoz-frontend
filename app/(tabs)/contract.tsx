@@ -60,7 +60,7 @@ export default function ContractScreen() {
   };
 
   const badgeEstado = () => {
-    if (estadoContrato === 'activo') return { texto: '✅ ' + t('contrato_activo'), cor: '#e8f5f0', corTexto: '#1D9E75', corBorda: '#b2dfcf' };
+    if (estadoContrato === 'activo') return { texto: '✅ ' + t('contrato_activo'), cor: '#e8f5f0', corTexto: '#1F8A70', corBorda: '#b2dfcf' };
     if (estadoContrato === 'terminado') return { texto: '🔴 ' + t('contrato_terminado'), cor: '#fff0f0', corTexto: '#c0392b', corBorda: '#ffcdd2' };
     return { texto: '⏳ ' + t('aguarda_confirmacao'), cor: '#fef9e7', corTexto: '#b45309', corBorda: '#fde68a' };
   };
@@ -248,7 +248,7 @@ export default function ContractScreen() {
 const styles = StyleSheet.create({
   container: { backgroundColor: '#f5f5f0', padding: 20, paddingTop: 60 },
   backBtn: { marginBottom: 16 },
-  backText: { color: '#1D9E75', fontSize: 16 },
+  backText: { color: '#1F8A70', fontSize: 16 },
   titulo: { fontSize: 24, fontWeight: 'bold', color: '#222', marginBottom: 4 },
   subtitulo: { fontSize: 13, color: '#888', marginBottom: 16 },
   badgeEstado: { padding: 12, borderRadius: 12, borderWidth: 1, marginBottom: 16, alignItems: 'center' },
@@ -257,14 +257,14 @@ const styles = StyleSheet.create({
   cardGreen: { backgroundColor: '#e8f5f0', borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#b2dfcf' },
   cardTerminado: { backgroundColor: '#fff0f0', borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#ffcdd2' },
   sectionLabel: { fontSize: 11, fontWeight: '700', color: '#aaa', letterSpacing: 1, marginBottom: 12 },
-  sectionLabelGreen: { fontSize: 11, fontWeight: '700', color: '#1D9E75', letterSpacing: 1, marginBottom: 12 },
+  sectionLabelGreen: { fontSize: 11, fontWeight: '700', color: '#1F8A70', letterSpacing: 1, marginBottom: 12 },
   sectionLabelTerminado: { fontSize: 11, fontWeight: '700', color: '#c0392b', letterSpacing: 1, marginBottom: 12 },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: '#f0f0ea' },
   rowLabel: { fontSize: 13, color: '#888' },
   rowValue: { fontSize: 13, fontWeight: '600', color: '#333' },
   chipGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { backgroundColor: '#e8f5f0', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
-  chipText: { fontSize: 13, color: '#1D9E75', fontWeight: '600' },
+  chipText: { fontSize: 13, color: '#1F8A70', fontWeight: '600' },
   badgeNegociar: { backgroundColor: '#fef3c7', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 20 },
   badgeNegociarText: { color: '#b45309', fontSize: 12, fontWeight: '600' },
   confirmDesc: { fontSize: 13, color: '#888', marginBottom: 16, lineHeight: 20 },
@@ -272,11 +272,11 @@ const styles = StyleSheet.create({
   confirmInfo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   confirmNome: { fontSize: 14, fontWeight: '600', color: '#333' },
   confirmEstado: { fontSize: 13, fontWeight: '600' },
-  confirmAceito: { color: '#1D9E75' },
+  confirmAceito: { color: '#1F8A70' },
   confirmRecusado: { color: '#c0392b' },
   confirmPendente: { color: '#b45309' },
   confirmBtns: { flexDirection: 'row', gap: 8 },
-  btnAceitar: { flex: 1, padding: 10, borderRadius: 10, backgroundColor: '#1D9E75', alignItems: 'center' },
+  btnAceitar: { flex: 1, padding: 10, borderRadius: 10, backgroundColor: '#1F8A70', alignItems: 'center' },
   btnAceitarText: { color: '#fff', fontSize: 13, fontWeight: '700' },
   btnRecusar: { flex: 1, padding: 10, borderRadius: 10, borderWidth: 1, borderColor: '#e0e0e0', alignItems: 'center', backgroundColor: '#fff' },
   btnRecusarText: { color: '#888', fontSize: 13, fontWeight: '600' },
@@ -286,6 +286,6 @@ const styles = StyleSheet.create({
   btnTerminarText: { color: '#fff', fontSize: 14, fontWeight: '700' },
   notaAvaliar: { backgroundColor: '#fef9e7', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: '#fde68a', marginBottom: 12 },
   notaAvaliarTexto: { fontSize: 13, color: '#b45309' },
-  btnAvaliar: { padding: 14, borderRadius: 12, backgroundColor: '#1D9E75', alignItems: 'center' },
+  btnAvaliar: { padding: 14, borderRadius: 12, backgroundColor: '#1F8A70', alignItems: 'center' },
   btnAvaliarText: { color: '#fff', fontSize: 15, fontWeight: '700' },
 });

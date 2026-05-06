@@ -78,7 +78,7 @@ export default function SubscriptionScreen() {
         </Text>
         <Text style={styles.planoEquivalente}>{t('equivale_a')} {precoAnualMensal} MZN/{t('mes')}</Text>
         <TouchableOpacity style={styles.btnSubscreverAnual}>
-          <Text style={[styles.btnSubscreverText, { color: '#1D9E75' }]}>
+          <Text style={[styles.btnSubscreverText, { color: '#1F8A70' }]}>
             {t('subscrever_por')} {precoAnual} MZN/{t('ano')}
           </Text>
         </TouchableOpacity>
@@ -99,18 +99,18 @@ const styles = StyleSheet.create({
   titulo: { fontSize: 24, fontWeight: 'bold', color: '#222', marginBottom: 12, textAlign: 'center' },
   desc: { fontSize: 14, color: '#888', textAlign: 'center', lineHeight: 22, marginBottom: 16 },
   tipoBadge: { backgroundColor: '#e8f5f0', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 8, marginBottom: 24, borderWidth: 1, borderColor: '#b2dfcf' },
-  tipoBadgeText: { color: '#1D9E75', fontSize: 14, fontWeight: '700' },
+  tipoBadgeText: { color: '#1F8A70', fontSize: 14, fontWeight: '700' },
   planoCard: { backgroundColor: '#fff', borderRadius: 20, padding: 24, width: '100%', marginBottom: 16, borderWidth: 1, borderColor: '#e0e0da' },
-  planoCardAnual: { backgroundColor: '#1D9E75', borderRadius: 20, padding: 24, width: '100%', marginBottom: 24, position: 'relative' },
+  planoCardAnual: { backgroundColor: '#1F8A70', borderRadius: 20, padding: 24, width: '100%', marginBottom: 24, position: 'relative' },
   badgeDesconto: { position: 'absolute', top: -12, right: 20, backgroundColor: '#f59e0b', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20 },
   badgeDescontoText: { color: '#fff', fontSize: 12, fontWeight: '700' },
   planoTitulo: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 8 },
-  planoPreco: { fontSize: 36, fontWeight: 'bold', color: '#1D9E75', marginBottom: 16 },
+  planoPreco: { fontSize: 36, fontWeight: 'bold', color: '#1F8A70', marginBottom: 16 },
   planoPeriodo: { fontSize: 16, color: '#888', fontWeight: 'normal' },
   planoEquivalente: { fontSize: 13, color: '#fff', marginBottom: 16, opacity: 0.8 },
   planoBeneficios: { marginBottom: 20, gap: 8 },
   beneficio: { fontSize: 14, color: '#555' },
-  btnSubscrever: { backgroundColor: '#1D9E75', padding: 14, borderRadius: 12, alignItems: 'center' },
+  btnSubscrever: { backgroundColor: '#1F8A70', padding: 14, borderRadius: 12, alignItems: 'center' },
   btnSubscreverAnual: { backgroundColor: '#fff', padding: 14, borderRadius: 12, alignItems: 'center' },
   btnSubscreverText: { color: '#fff', fontSize: 15, fontWeight: '700' },
   linkSair: { marginTop: 8 },

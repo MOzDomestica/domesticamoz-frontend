@@ -81,15 +81,15 @@ export default function InviteScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', padding: 24 },
-  logo: { fontSize: 28, fontWeight: 'bold', color: '#1D9E75', marginBottom: 24 },
+  logo: { fontSize: 28, fontWeight: 'bold', color: '#1F8A70', marginBottom: 24 },
   icon: { fontSize: 48, marginBottom: 16 },
   titulo: { fontSize: 22, fontWeight: 'bold', color: '#222', marginBottom: 12, textAlign: 'center' },
   desc: { fontSize: 14, color: '#888', textAlign: 'center', lineHeight: 22, marginBottom: 32 },
   inputContainer: { width: '100%', marginBottom: 16 },
   input: { borderWidth: 1, borderColor: '#D3D1C7', borderRadius: 12, padding: 16, fontSize: 20, textAlign: 'center', letterSpacing: 4, backgroundColor: '#f9f9f7' },
-  btn: { backgroundColor: '#1D9E75', padding: 16, borderRadius: 12, alignItems: 'center', width: '100%', marginBottom: 24 },
+  btn: { backgroundColor: '#1F8A70', padding: 16, borderRadius: 12, alignItems: 'center', width: '100%', marginBottom: 24 },
   btnDisabled: { backgroundColor: '#aaa' },
   btnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
   notaBox: { backgroundColor: '#e8f5f0', borderRadius: 12, padding: 16, borderWidth: 1, borderColor: '#b2dfcf' },
-  notaTexto: { fontSize: 13, color: '#1D9E75', lineHeight: 20, textAlign: 'center' },
+  notaTexto: { fontSize: 13, color: '#1F8A70', lineHeight: 20, textAlign: 'center' },
 });

@@ -1,111 +1,133 @@
-import { getLingua, t } from '@/constants/i18n';
-import { formatarDiasRestantes, verificarSubscricao } from '@/constants/subscription';
+import { getLingua, setLingua } from '@/constants/i18n';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+
+const textos = {
+  pt: {
+    tagline: 'Emprego doméstico de confiança',
+    criarConta: 'Criar conta',
+    entrar: 'Entrar',
+    segura: '🔒 Plataforma segura e verificada',
+    faseTeste: 'Fase de teste',
+  },
+  en: {
+    tagline: 'Trusted domestic employment',
+    criarConta: 'Create account',
+    entrar: 'Sign in',
+    segura: '🔒 Safe and verified platform',
+    faseTeste: 'Trial phase',
+  },
+};
 
 export default function HomeScreen() {
   const router = useRouter();
-  const [diasRestantes, setDiasRestantes] = useState<number | null>(null);
-  const [subscricaoExpirada, setSubscricaoExpirada] = useState(false);
-  const [, setLinguaActual] = useState('pt');
+  const [lingua, setLinguaState] = useState<'pt' | 'en'>('pt');
 
-  useFocusEffect(
-    useCallback(() => {
-      const checar = async () => {
-        const codigoValido = await AsyncStorage.getItem('codigo_convite_valido');
-        if (!codigoValido) {
-          router.replace('/(tabs)/invite');
-          return;
-        }
-        const { diasRestantes, expirada } = await verificarSubscricao();
-        setDiasRestantes(diasRestantes);
-        setSubscricaoExpirada(expirada);
-        if (expirada) {
-          router.replace('/(tabs)/subscription');
-        }
-        const lingua = await getLingua();
-        setLinguaActual(lingua);
-      };
-      checar();
-    }, [])
-  );
+  useEffect(() => {
+    getLingua().then(l => setLinguaState(l));
+    AsyncStorage.getItem('codigo_convite_valido').then(v => {
+      if (!v) router.replace('/(tabs)/invite');
+    });
+  }, []);
 
-  const entrar = async (tipo: 'trabalhadora' | 'empregador') => {
-    await AsyncStorage.removeItem('tipoUser');
-    await AsyncStorage.setItem('tipoUser', tipo);
-    router.push({ pathname: '/(tabs)/register', params: { tipo } });
+  const trocarLingua = async () => {
+    const nova = lingua === 'pt' ? 'en' : 'pt';
+    await setLingua(nova);
+    setLinguaState(nova);
   };
+
+  const tx = textos[lingua];
 
   return (
     <View style={styles.container}>
 
+      {/* BOTÃO DE LÍNGUA */}
+      <TouchableOpacity style={styles.linguaBtn} onPress={trocarLingua}>
+        <Text style={styles.linguaText}>
+          {lingua === 'pt' ? '🇲🇿 PT' : '🇬🇧 EN'}
+        </Text>
+      </TouchableOpacity>
+
+      {/* LOGO */}
       <View style={styles.topo}>
-        <Text style={styles.ilustracao}>🏠</Text>
-        <Text style={styles.logo}>{t('app_nome')}</Text>
-        <Text style={styles.tagline}>{t('app_slogan')}</Text>
-      </View>
-
-      {diasRestantes !== null && diasRestantes <= 7 && !subscricaoExpirada && (
-        <View style={styles.avisoTrial}>
-          <Text style={styles.avisoTrialText}>
-            ⚠️ {formatarDiasRestantes(diasRestantes)} {t('periodo_teste')}
-          </Text>
+        <View style={styles.logoCircle}>
+          <Text style={styles.logoLetra}>D</Text>
         </View>
-      )}
+        <Text style={styles.logo}>DomésticaMoz</Text>
+        <Text style={styles.tagline}>{tx.tagline}</Text>
+      </View>
 
-      <View style={styles.botoesContainer}>
-        <Text style={styles.botoesTitle}>{t('como_usar')}</Text>
-
-        <TouchableOpacity style={styles.btnTrabalhadora} onPress={() => entrar('trabalhadora')}>
-          <Text style={styles.btnIcon}>👩</Text>
-          <View style={styles.btnInfo}>
-            <Text style={styles.btnTitulo}>{t('sou_trabalhadora')}</Text>
-            <Text style={styles.btnDesc}>{t('trabalhadora_desc')}</Text>
-          </View>
-          <Text style={styles.btnSeta}>›</Text>
+      {/* BOTÕES */}
+      <View style={styles.botoes}>
+        <TouchableOpacity
+          style={styles.btnPrimario}
+          onPress={() => router.push('/(tabs)/register')}>
+          <Text style={styles.btnPrimarioText}>{tx.criarConta}</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.btnEmpregador} onPress={() => entrar('empregador')}>
-          <Text style={styles.btnIcon}>🏠</Text>
-          <View style={styles.btnInfo}>
-            <Text style={[styles.btnTitulo, { color: '#185FA5' }]}>{t('sou_empregador')}</Text>
-            <Text style={styles.btnDesc}>{t('empregador_desc')}</Text>
-          </View>
-          <Text style={[styles.btnSeta, { color: '#185FA5' }]}>›</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity onPress={() => router.push('/(tabs)/explore')} style={styles.linkEntrar}>
-          <Text style={styles.linkEntrarText}>{t('ja_tenho_conta')} </Text>
-          <Text style={styles.linkEntrarDestaque}>{t('entrar')}</Text>
+        <TouchableOpacity
+          style={styles.btnSecundario}
+          onPress={() => router.push('/(tabs)/login')}>
+          <Text style={styles.btnSecundarioText}>{tx.entrar}</Text>
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.rodape}>🔒 {t('plataforma_segura')}</Text>
+      {/* RODAPÉ COM SOBRE */}
+      <View style={styles.rodapeContainer}>
+        <Text style={styles.rodape}>{tx.segura}</Text>
+        <View style={styles.sobreRow}>
+          <Text style={styles.sobreTexto}>DomésticaMoz v1.0.0</Text>
+          <Text style={styles.sobrePonto}>·</Text>
+          <Text style={styles.sobreTexto}>{tx.faseTeste}</Text>
+          <Text style={styles.sobrePonto}>·</Text>
+          <Text style={styles.sobreTexto}>Moçambique</Text>
+        </View>
+      </View>
+
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f0' },
-  topo: { backgroundColor: '#1D9E75', paddingTop: 80, paddingBottom: 40, alignItems: 'center', borderBottomLeftRadius: 32, borderBottomRightRadius: 32 },
-  ilustracao: { fontSize: 64, marginBottom: 12 },
-  logo: { fontSize: 32, fontWeight: 'bold', color: '#fff', marginBottom: 6 },
-  tagline: { fontSize: 15, color: '#e0f0ea', textAlign: 'center' },
-  avisoTrial: { backgroundColor: '#fef3c7', margin: 20, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#fde68a' },
-  avisoTrialText: { color: '#b45309', fontSize: 13, fontWeight: '600', textAlign: 'center' },
-  botoesContainer: { padding: 24, flex: 1, justifyContent: 'center' },
-  botoesTitle: { fontSize: 16, fontWeight: '600', color: '#888', marginBottom: 16, textAlign: 'center' },
-  btnTrabalhadora: { backgroundColor: '#fff', borderRadius: 16, padding: 18, flexDirection: 'row', alignItems: 'center', marginBottom: 12, borderWidth: 1, borderColor: '#b2dfcf', elevation: 2 },
-  btnEmpregador: { backgroundColor: '#EBF4FF', borderRadius: 16, padding: 18, flexDirection: 'row', alignItems: 'center', marginBottom: 24, borderWidth: 1, borderColor: '#bfdbf7', elevation: 2 },
-  btnIcon: { fontSize: 32, marginRight: 14 },
-  btnInfo: { flex: 1 },
-  btnTitulo: { fontSize: 16, fontWeight: 'bold', color: '#1D9E75', marginBottom: 4 },
-  btnDesc: { fontSize: 13, color: '#888' },
-  btnSeta: { fontSize: 28, color: '#1D9E75', fontWeight: 'bold' },
-  linkEntrar: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
-  linkEntrarText: { color: '#888', fontSize: 14 },
-  linkEntrarDestaque: { color: '#1D9E75', fontSize: 14, fontWeight: '700' },
-  rodape: { textAlign: 'center', color: '#aaa', fontSize: 12, paddingBottom: 16 },
+  container: {
+    flex: 1, backgroundColor: '#F9FAFB',
+    justifyContent: 'space-between',
+    padding: 24, paddingTop: 120, paddingBottom: 40,
+  },
+  linguaBtn: {
+    position: 'absolute', top: 56, right: 24,
+    backgroundColor: '#fff', borderRadius: 20,
+    paddingHorizontal: 12, paddingVertical: 6,
+    borderWidth: 1.5, borderColor: '#E5E7EB',
+    shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 4, elevation: 2,
+  },
+  linguaText: { fontSize: 13, fontWeight: '700', color: '#1F2937' },
+  topo: { alignItems: 'center' },
+  logoCircle: {
+    width: 88, height: 88, borderRadius: 44,
+    backgroundColor: '#1F8A70', alignItems: 'center', justifyContent: 'center',
+    marginBottom: 18,
+    shadowColor: '#1F8A70', shadowOpacity: 0.3, shadowRadius: 14, elevation: 6,
+  },
+  logoLetra: { fontSize: 40, fontWeight: 'bold', color: '#fff' },
+  logo: { fontSize: 28, fontWeight: 'bold', color: '#1F2937', marginBottom: 8 },
+  tagline: { fontSize: 16, color: '#6B7280', textAlign: 'center' },
+  botoes: { gap: 14 },
+  btnPrimario: {
+    backgroundColor: '#1F8A70', padding: 17, borderRadius: 16, alignItems: 'center',
+    shadowColor: '#1F8A70', shadowOpacity: 0.25, shadowRadius: 10, elevation: 4,
+  },
+  btnPrimarioText: { color: '#fff', fontSize: 17, fontWeight: '700' },
+  btnSecundario: {
+    backgroundColor: '#fff', padding: 17, borderRadius: 16,
+    alignItems: 'center', borderWidth: 1.5, borderColor: '#1F8A70',
+  },
+  btnSecundarioText: { color: '#1F8A70', fontSize: 17, fontWeight: '700' },
+  rodapeContainer: { alignItems: 'center', gap: 6 },
+  rodape: { color: '#9CA3AF', fontSize: 13 },
+  sobreRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  sobreTexto: { fontSize: 12, color: '#C4C9D4' },
+  sobrePonto: { fontSize: 12, color: '#C4C9D4' },
 });

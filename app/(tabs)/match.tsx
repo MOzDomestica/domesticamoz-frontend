@@ -171,7 +171,7 @@ export default function MatchesScreen() {
   }
 
   function corScore(score: number) {
-    if (score >= 80) return '#1D9E75';
+    if (score >= 80) return '#1F8A70';
     if (score >= 60) return '#F59E0B';
     return '#EF4444';
   }
@@ -197,7 +197,7 @@ export default function MatchesScreen() {
   if (loading) {
     return (
       <View style={styles.centrado}>
-        <ActivityIndicator size="large" color="#1D9E75" />
+        <ActivityIndicator size="large" color="#1F8A70" />
         <Text style={styles.loadingText}>{t('carregando')}</Text>
       </View>
     );
@@ -325,7 +325,7 @@ const styles = StyleSheet.create({
   loadingText: { color: '#888', fontSize: 14 },
   titulo: { fontSize: 26, fontWeight: 'bold', color: '#222', marginBottom: 4 },
   subtitulo: { fontSize: 14, color: '#888', marginBottom: 20 },
-  btnCalcular: { backgroundColor: '#1D9E75', borderRadius: 12, padding: 14, alignItems: 'center', marginBottom: 20 },
+  btnCalcular: { backgroundColor: '#1F8A70', borderRadius: 12, padding: 14, alignItems: 'center', marginBottom: 20 },
   btnDisabled: { backgroundColor: '#aaa' },
   btnCalcularText: { color: '#fff', fontSize: 15, fontWeight: '700' },
   erroBox: { backgroundColor: '#FEE2E2', borderRadius: 10, padding: 12, marginBottom: 16 },
@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
   vazioSub: { fontSize: 14, color: '#aaa', textAlign: 'center' },
   card: { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 16, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
   cardHeader: { flexDirection: 'row', gap: 12, marginBottom: 12 },
-  avatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: '#1D9E75', alignItems: 'center', justifyContent: 'center' },
+  avatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: '#1F8A70', alignItems: 'center', justifyContent: 'center' },
   avatarText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
   cardInfo: { flex: 1 },
   cardNome: { fontSize: 16, fontWeight: '700', color: '#222' },
@@ -356,6 +356,6 @@ const styles = StyleSheet.create({
   cardBtns: { flexDirection: 'row', gap: 8 },
   btnRecusar: { flex: 1, padding: 10, borderRadius: 10, borderWidth: 1, borderColor: '#ddd', alignItems: 'center' },
   btnRecusarText: { fontSize: 13, color: '#888', fontWeight: '600' },
-  btnContactar: { flex: 2, padding: 10, borderRadius: 10, backgroundColor: '#1D9E75', alignItems: 'center' },
+  btnContactar: { flex: 2, padding: 10, borderRadius: 10, backgroundColor: '#1F8A70', alignItems: 'center' },
   btnContactarText: { fontSize: 13, color: '#fff', fontWeight: '700' },
 });

@@ -1,141 +1,256 @@
-import { getLingua, setLingua, t } from '@/constants/i18n';
 import { supabase } from '@/constants/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function SettingsScreen() {
-  const [lingua, setLinguaState] = useState<'pt' | 'en'>('pt');
   const router = useRouter();
+  const [nomeUtilizador, setNomeUtilizador] = useState('');
+  const [tipoUtilizador, setTipoUtilizador] = useState('');
+  const [telefone, setTelefone] = useState('');
+  const [numeroBi, setNumeroBi] = useState('');
+  const [fotoPerfil, setFotoPerfil] = useState<string | null>(null);
+  const [tituloPerfil, setTituloPerfil] = useState('');
+  const [eliminando, setEliminando] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
-      getLingua().then(l => setLinguaState(l));
+      carregarPerfil();
     }, [])
   );
 
-  const mudarLingua = async (novaLingua: 'pt' | 'en') => {
-    await setLingua(novaLingua);
-    setLinguaState(novaLingua);
-    Alert.alert(
-      novaLingua === 'pt' ? 'Língua alterada' : 'Language changed',
-      novaLingua === 'pt'
-        ? 'A app está agora em Português. Navegue para outro ecrã para ver as mudanças.'
-        : 'The app is now in English. Navigate to another screen to see the changes.',
-    );
+  const carregarPerfil = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: u } = await supabase
+        .from('utilizadores')
+        .select('nome_completo, tipo, numero_telemovel, numero_bi, foto_bi_url')
+        .eq('id', user.id)
+        .single();
+
+      if (u) {
+        setNomeUtilizador(u.nome_completo || '');
+        setTipoUtilizador(u.tipo || '');
+        setTelefone(u.numero_telemovel || '');
+        setNumeroBi(u.numero_bi || '');
+        setFotoPerfil(u.foto_bi_url || null);
+      }
+
+      if (u?.tipo === 'trabalhadora') {
+        const { data: pt } = await supabase
+          .from('perfis_trabalhadoras')
+          .select('tipo_trabalhadora')
+          .eq('utilizador_id', user.id)
+          .single();
+
+        if (pt?.tipo_trabalhadora) {
+          const mapa: Record<string, string> = {
+            empregada_domestica: 'Empregada Doméstica',
+            cozinheira_fixa: 'Cozinheira',
+            baba: 'Babá',
+            diarista: 'Diarista',
+            cozinheira_diarista: 'Empregada + Cozinheira',
+          };
+          setTituloPerfil(mapa[pt.tipo_trabalhadora] || pt.tipo_trabalhadora);
+        }
+      }
+    } catch {}
   };
 
-  const limparDados = async () => {
-    Alert.alert(
-      t('limpar_dados'),
-      t('limpar_dados_confirmacao'),
-      [
-        { text: t('cancelar'), style: 'cancel' },
-        {
-          text: t('limpar_tudo'), style: 'destructive',
-          onPress: async () => {
-            await AsyncStorage.clear();
-            Alert.alert(t('sucesso'), t('dados_limpos'));
-          }
-        },
-      ]
-    );
+  const terminarSessao = () => {
+    Alert.alert('Terminar sessão', 'Tem a certeza que quer sair?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Sair', style: 'destructive', onPress: async () => {
+          await supabase.auth.signOut();
+          await AsyncStorage.removeItem('tipoUser');
+          router.replace('/');
+        }
+      },
+    ]);
   };
 
-  const logout = async () => {
+  const limparDados = () => {
+    Alert.alert('Limpar dados', 'Tem a certeza?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Limpar', style: 'destructive', onPress: async () => {
+          await AsyncStorage.clear();
+          Alert.alert('Feito', 'Dados limpos. Reinicie a app.');
+        }
+      },
+    ]);
+  };
+
+  const eliminarConta = () => {
     Alert.alert(
-      t('terminar_sessao'),
-      t('terminar_sessao_confirmacao'),
+      '⚠️ Eliminar conta',
+      'Esta acção é irreversível. A sua conta e todos os dados serão apagados permanentemente.',
       [
-        { text: t('cancelar'), style: 'cancel' },
+        { text: 'Cancelar', style: 'cancel' },
         {
-          text: t('sair'), style: 'destructive',
-          onPress: async () => {
+          text: 'Eliminar', style: 'destructive', onPress: async () => {
+            setEliminando(true);
+            try {
+              // Chama a Edge Function que apaga tudo incluindo o auth.user
+              // Isto liberta o número de telemóvel para uso futuro
+              const { error } = await supabase.functions.invoke('delete-user');
+
+              if (error) {
+                Alert.alert('Erro', 'Não foi possível eliminar a conta. Tente novamente.');
+                setEliminando(false);
+                return;
+              }
+            } catch {
+              Alert.alert('Erro', 'Sem ligação ao servidor.');
+              setEliminando(false);
+              return;
+            }
+
             await supabase.auth.signOut();
             await AsyncStorage.clear();
-            router.replace('/(tabs)/explore' as any);
+            router.replace('/');
           }
         },
       ]
     );
+  };
+
+  const formatarTelefone = (tel: string) => {
+    if (!tel) return '—';
+    const num = tel.startsWith('258') ? tel.slice(3) : tel;
+    return `+258 ${num.slice(0, 2)} ${num.slice(2, 5)} ${num.slice(5)}`;
+  };
+
+  const formatarBI = (bi: string) => {
+    if (!bi || bi.startsWith('TEMP_')) return '—';
+    return bi;
   };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.titulo}>{t('definicoes')}</Text>
 
-      <View style={styles.seccao}>
-        <Text style={styles.seccaoTitulo}>🌍 {t('lingua_app').toUpperCase()}</Text>
-
-        <TouchableOpacity
-          style={[styles.opcao, lingua === 'pt' && styles.opcaoActiva]}
-          onPress={() => mudarLingua('pt')}>
-          <View style={styles.opcaoInfo}>
-            <Text style={styles.opcaoBandeira}>🇲🇿</Text>
-            <View>
-              <Text style={[styles.opcaoTitulo, lingua === 'pt' && styles.opcaoTituloActivo]}>Português</Text>
-              <Text style={styles.opcaoDesc}>{t('lingua_padrao')}</Text>
-            </View>
+      {/* HEADER */}
+      <View style={styles.header}>
+        {fotoPerfil ? (
+          <Image source={{ uri: fotoPerfil }} style={styles.fotoPerfil} />
+        ) : (
+          <View style={styles.avatarGrande}>
+            <Text style={styles.avatarLetra}>
+              {nomeUtilizador ? nomeUtilizador[0].toUpperCase() : '?'}
+            </Text>
           </View>
-          {lingua === 'pt' && <Text style={styles.check}>✓</Text>}
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.opcao, lingua === 'en' && styles.opcaoActiva]}
-          onPress={() => mudarLingua('en')}>
-          <View style={styles.opcaoInfo}>
-            <Text style={styles.opcaoBandeira}>🇬🇧</Text>
-            <View>
-              <Text style={[styles.opcaoTitulo, lingua === 'en' && styles.opcaoTituloActivo]}>English</Text>
-              <Text style={styles.opcaoDesc}>{t('lingua_expats')}</Text>
-            </View>
+        )}
+        <Text style={styles.nomeUtilizador}>{nomeUtilizador || 'Utilizador'}</Text>
+        {tituloPerfil ? (
+          <View style={styles.tipoBadge}>
+            <Text style={styles.tipoBadgeText}>👩 {tituloPerfil}</Text>
           </View>
-          {lingua === 'en' && <Text style={styles.check}>✓</Text>}
-        </TouchableOpacity>
+        ) : (
+          <View style={[styles.tipoBadge, tipoUtilizador === 'empregador' && styles.tipoBadgeEmpregador]}>
+            <Text style={[styles.tipoBadgeText, tipoUtilizador === 'empregador' && styles.tipoBadgeTextEmpregador]}>
+              {tipoUtilizador === 'empregador' ? '🏠 Empregador' : '👩 Trabalhadora'}
+            </Text>
+          </View>
+        )}
       </View>
 
-      <View style={styles.seccao}>
-        <Text style={styles.seccaoTitulo}>👤 {t('conta').toUpperCase()}</Text>
-
-        <TouchableOpacity style={styles.opcaoPerigo} onPress={limparDados}>
-          <Text style={styles.opcaoPerigoTexto}>🗑️ {t('limpar_dados')}</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={[styles.opcaoPerigo, { marginTop: 8 }]} onPress={logout}>
-          <Text style={styles.opcaoPerigoTexto}>🚪 {t('terminar_sessao')}</Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.seccao}>
-        <Text style={styles.seccaoTitulo}>ℹ️ {t('sobre').toUpperCase()}</Text>
-        <View style={styles.sobreCard}>
-          <Text style={styles.sobreNome}>{t('app_nome')}</Text>
-          <Text style={styles.sobreVersao}>{t('versao')}</Text>
-          <Text style={styles.sobreDesc}>{t('descricao_app')}</Text>
+      {/* DADOS PESSOAIS */}
+      <Text style={styles.seccaoTitulo}>👤 DADOS PESSOAIS</Text>
+      <View style={styles.card}>
+        <View style={styles.dadoRow}>
+          <Text style={styles.dadoLabel}>Número de telefone</Text>
+          <Text style={styles.dadoValor}>{formatarTelefone(telefone)}</Text>
+        </View>
+        <View style={styles.divider} />
+        <View style={styles.dadoRow}>
+          <Text style={styles.dadoLabel}>Número de BI</Text>
+          <Text style={styles.dadoValor}>{formatarBI(numeroBi)}</Text>
         </View>
       </View>
+
+      {/* CONTA */}
+      <Text style={styles.seccaoTituloDiscreta}>CONTA</Text>
+      <View style={styles.cardDiscreta}>
+
+        <TouchableOpacity style={styles.accaoCompacta} onPress={limparDados}>
+          <Text style={styles.accaoCompactaTexto}>Limpar dados locais</Text>
+        </TouchableOpacity>
+
+        <View style={styles.divider} />
+
+        <TouchableOpacity style={styles.accaoCompacta} onPress={terminarSessao}>
+          <Text style={styles.accaoCompactaTexto}>Terminar sessão</Text>
+        </TouchableOpacity>
+
+        <View style={styles.divider} />
+
+        <TouchableOpacity
+          style={styles.accaoCompacta}
+          onPress={eliminarConta}
+          disabled={eliminando}>
+          <Text style={[styles.accaoCompactaTexto, { color: '#EF4444' }]}>
+            {eliminando ? 'A eliminar...' : 'Eliminar conta'}
+          </Text>
+        </TouchableOpacity>
+
+      </View>
+
+      <View style={{ height: 48 }} />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { backgroundColor: '#f5f5f0', padding: 24, paddingTop: 60 },
-  titulo: { fontSize: 28, fontWeight: 'bold', color: '#222', marginBottom: 24 },
-  seccao: { marginBottom: 24 },
-  seccaoTitulo: { fontSize: 13, fontWeight: '700', color: '#aaa', letterSpacing: 1, marginBottom: 12 },
-  opcao: { backgroundColor: '#fff', borderRadius: 14, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, borderWidth: 1, borderColor: '#e0e0da' },
-  opcaoActiva: { backgroundColor: '#e8f5f0', borderColor: '#1D9E75' },
-  opcaoInfo: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  opcaoBandeira: { fontSize: 28 },
-  opcaoTitulo: { fontSize: 15, fontWeight: '600', color: '#333' },
-  opcaoTituloActivo: { color: '#1D9E75' },
-  opcaoDesc: { fontSize: 12, color: '#888', marginTop: 2 },
-  check: { fontSize: 18, color: '#1D9E75', fontWeight: 'bold' },
-  opcaoPerigo: { backgroundColor: '#fff0f0', borderRadius: 14, padding: 16, borderWidth: 1, borderColor: '#ffcdd2' },
-  opcaoPerigoTexto: { fontSize: 15, color: '#c0392b', fontWeight: '600' },
-  sobreCard: { backgroundColor: '#fff', borderRadius: 14, padding: 16, alignItems: 'center', borderWidth: 1, borderColor: '#e0e0da' },
-  sobreNome: { fontSize: 18, fontWeight: 'bold', color: '#1D9E75', marginBottom: 4 },
-  sobreVersao: { fontSize: 12, color: '#aaa', marginBottom: 8 },
-  sobreDesc: { fontSize: 13, color: '#555', textAlign: 'center', lineHeight: 20 },
+  container: { backgroundColor: '#F9FAFB', padding: 20, paddingTop: 64 },
+  header: { alignItems: 'center', marginBottom: 28, paddingTop: 8 },
+  fotoPerfil: {
+    width: 90, height: 90, borderRadius: 45,
+    marginBottom: 14, borderWidth: 3, borderColor: '#1F8A70',
+  },
+  avatarGrande: {
+    width: 90, height: 90, borderRadius: 45,
+    backgroundColor: '#1F8A70', alignItems: 'center', justifyContent: 'center',
+    marginBottom: 14,
+    shadowColor: '#1F8A70', shadowOpacity: 0.25, shadowRadius: 10, elevation: 4,
+  },
+  avatarLetra: { fontSize: 36, fontWeight: 'bold', color: '#fff' },
+  nomeUtilizador: { fontSize: 22, fontWeight: 'bold', color: '#1F2937', marginBottom: 8 },
+  tipoBadge: {
+    backgroundColor: '#ECFDF5', paddingHorizontal: 16, paddingVertical: 6,
+    borderRadius: 20, borderWidth: 1, borderColor: '#A7F3D0',
+  },
+  tipoBadgeEmpregador: { backgroundColor: '#EBF4FF', borderColor: '#BFDBFE' },
+  tipoBadgeText: { fontSize: 14, fontWeight: '600', color: '#065F46' },
+  tipoBadgeTextEmpregador: { color: '#1E40AF' },
+  seccaoTitulo: {
+    fontSize: 11, fontWeight: '700', color: '#9CA3AF',
+    letterSpacing: 1, marginBottom: 8, marginTop: 8,
+  },
+  seccaoTituloDiscreta: {
+    fontSize: 10, fontWeight: '600', color: '#C4C9D4',
+    letterSpacing: 1, marginBottom: 6, marginTop: 20,
+  },
+  card: {
+    backgroundColor: '#fff', borderRadius: 16,
+    borderWidth: 1, borderColor: '#E5E7EB',
+    marginBottom: 8, overflow: 'hidden',
+  },
+  cardDiscreta: {
+    backgroundColor: '#fff', borderRadius: 12,
+    borderWidth: 1, borderColor: '#F3F4F6',
+    marginBottom: 8, overflow: 'hidden',
+  },
+  divider: { height: 1, backgroundColor: '#F3F4F6' },
+  dadoRow: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    alignItems: 'center', padding: 16,
+  },
+  dadoLabel: { fontSize: 14, color: '#6B7280' },
+  dadoValor: { fontSize: 14, fontWeight: '600', color: '#1F2937' },
+  accaoCompacta: { paddingVertical: 11, paddingHorizontal: 16 },
+  accaoCompactaTexto: { fontSize: 13, color: '#6B7280' },
 });

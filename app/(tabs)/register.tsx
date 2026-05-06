@@ -1,405 +1,411 @@
-import { getLingua, t } from '@/constants/i18n';
 import { supabase } from '@/constants/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
-import { Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
+import {
+  Alert, Image, ScrollView, StyleSheet,
+  Text, TextInput, TouchableOpacity, View,
+} from 'react-native';
 
 const SUPABASE_URL = 'https://yxewlabdcxncgjoecxlz.supabase.co';
+const CODIGOS = ['MOZDOM2026','TESTE123','AMIGO001','AMIGO002','AMIGO003','AMIGO004','AMIGO005'];
 
 export default function RegisterScreen() {
-  const [nome, setNome] = useState<string>('');
-  const [telefone, setTelefone] = useState<string>('');
-  const [codigoConvite, setCodigoConvite] = useState<string>('');
-  const [tipoDocumento, setTipoDocumento] = useState<'bi' | 'passaporte'>('bi');
-  const [numeroDocumento, setNumeroDocumento] = useState<string>('');
-  const [validadeDocumento, setValidadeDocumento] = useState<string>('');
-  const [nascimento, setNascimento] = useState<string>('');
-  const [nacionalidade, setNacionalidade] = useState<string>('Moçambicana');
-  const [tipo, setTipo] = useState<string>('');
-  const [loading, setLoading] = useState<boolean>(false);
-  const [, setLinguaActual] = useState('pt');
-
-  const [fotoPerfil, setFotoPerfil] = useState<string | null>(null);
-  const [fotoDocumentoFrente, setFotoDocumentoFrente] = useState<string | null>(null);
-  const [fotoDocumentoVerso, setFotoDocumentoVerso] = useState<string | null>(null);
-  const [fotoSelfieDocumento, setFotoSelfieDocumento] = useState<string | null>(null);
-
   const router = useRouter();
-  const { tipo: tipoParam } = useLocalSearchParams();
+  const [etapa, setEtapa] = useState(0);
+  const [tipo, setTipo] = useState<'trabalhadora'|'empregador'|''>('');
+  const [nome, setNome] = useState('');
+  const [telefone, setTelefone] = useState('');
+  const [password, setPassword] = useState('');
+  const [passwordConf, setPasswordConf] = useState('');
+  const [codigo, setCodigo] = useState('');
+  const [nascimento, setNascimento] = useState('');
+  const [tipoDoc, setTipoDoc] = useState<'bi'|'passaporte'>('bi');
+  const [numDoc, setNumDoc] = useState('');
+  const [validade, setValidade] = useState('');
+  const [fotoPerfil, setFotoPerfil] = useState<string|null>(null);
+  const [fotoFrente, setFotoFrente] = useState<string|null>(null);
+  const [fotoVerso, setFotoVerso] = useState<string|null>(null);
+  const [fotoSelfie, setFotoSelfie] = useState<string|null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const CODIGOS_VALIDOS = [
-    'MOZDOM2026', 'TESTE123', 'AMIGO001', 'AMIGO002',
-    'AMIGO003', 'AMIGO004', 'AMIGO005',
-  ];
-
-  useEffect(() => {
-    if (tipoParam && tipoParam !== '') {
-      const t = Array.isArray(tipoParam) ? tipoParam[0] : tipoParam;
-      setTipo(t);
-      AsyncStorage.setItem('tipoUser', t);
-    }
-  }, [tipoParam]);
-
+  // SEMPRE que o ecrã ganhar foco, volta à etapa 0
   useFocusEffect(
     useCallback(() => {
-      getLingua().then(l => setLinguaActual(l));
+      setEtapa(0);
+      setTipo('');
     }, [])
   );
 
-  const tirarFoto = async (setter: (uri: string) => void, usarCamera = true) => {
-    const permissao = usarCamera
-      ? await ImagePicker.requestCameraPermissionsAsync()
-      : await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-    if (!permissao.granted) {
-      Alert.alert(t('permissao_necessaria'), t('permissao_camara'));
-      return;
-    }
-
-    const resultado = usarCamera
-      ? await ImagePicker.launchCameraAsync({ quality: 0.5, allowsEditing: true, aspect: [4, 3] })
-      : await ImagePicker.launchImageLibraryAsync({ quality: 0.5, allowsEditing: true, aspect: [4, 3] });
-
-    if (!resultado.canceled && resultado.assets[0]) {
-      setter(resultado.assets[0].uri);
-    }
-  };
-
-  const escolherFoto = (setter: (uri: string) => void) => {
-    Alert.alert(t('adicionar_foto'), t('como_adicionar_foto'), [
-      { text: t('tirar_foto'), onPress: () => tirarFoto(setter, true) },
-      { text: t('escolher_galeria'), onPress: () => tirarFoto(setter, false) },
-      { text: t('cancelar'), style: 'cancel' },
+  const tirarFoto = (setter: (u: string) => void) => {
+    Alert.alert('Foto', 'Como quer adicionar?', [
+      {
+        text: 'Câmara', onPress: async () => {
+          const p = await ImagePicker.requestCameraPermissionsAsync();
+          if (!p.granted) return;
+          const r = await ImagePicker.launchCameraAsync({ quality: 0.5, allowsEditing: true, aspect: [4, 3] });
+          if (!r.canceled) setter(r.assets[0].uri);
+        }
+      },
+      {
+        text: 'Galeria', onPress: async () => {
+          const p = await ImagePicker.requestMediaLibraryPermissionsAsync();
+          if (!p.granted) return;
+          const r = await ImagePicker.launchImageLibraryAsync({ quality: 0.5, allowsEditing: true, aspect: [4, 3] });
+          if (!r.canceled) setter(r.assets[0].uri);
+        }
+      },
+      { text: 'Cancelar', style: 'cancel' },
     ]);
   };
 
-  const uploadFoto = async (uri: string, userId: string, nomeArquivo: string): Promise<string | null> => {
+  const uploadFoto = async (uri: string, userId: string, nomeArq: string) => {
     try {
-      const extensao = uri.split('.').pop()?.split('?')[0] ?? 'jpg';
-      const caminho = `${userId}/${nomeArquivo}.${extensao}`;
-      const formData = new FormData();
-      formData.append('file', {
-        uri: uri,
-        name: `${nomeArquivo}.${extensao}`,
-        type: `image/${extensao}`,
-      } as any);
-
+      const ext = uri.split('.').pop()?.split('?')[0] ?? 'jpg';
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return null;
-
+      const fd = new FormData();
+      fd.append('file', { uri, name: `${nomeArq}.${ext}`, type: `image/${ext}` } as any);
       const res = await fetch(
-        `${SUPABASE_URL}/storage/v1/object/documentos/${caminho}`,
+        `${SUPABASE_URL}/storage/v1/object/documentos/${userId}/${nomeArq}.${ext}`,
         {
           method: 'POST',
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-            'x-upsert': 'true',
-          },
-          body: formData,
+          headers: { Authorization: `Bearer ${session.access_token}`, 'x-upsert': 'true' },
+          body: fd,
         }
       );
+      return res.ok ? `${userId}/${nomeArq}.${ext}` : null;
+    } catch { return null; }
+  };
 
-      if (!res.ok) {
-        console.error('Erro upload status:', res.status);
-        return null;
+  const registar = async () => {
+    if (!nome || !telefone || password.length < 6) {
+      Alert.alert('Erro', 'Preencha todos os campos. A palavra-passe deve ter 6 dígitos.');
+      return;
+    }
+    if (password !== passwordConf) {
+      Alert.alert('Erro', 'As palavras-passe não coincidem.');
+      return;
+    }
+    if (!CODIGOS.includes(codigo.trim().toUpperCase())) {
+      Alert.alert('Código inválido', 'O código de convite não é válido.');
+      return;
+    }
+    setLoading(true);
+    try {
+      const numero = `258${telefone.replace(/\D/g, '')}`;
+      const email = `${numero}@domesticamoz.app`;
+      const { data: up, error: ue } = await supabase.auth.signUp({ email, password });
+      if (ue?.message?.includes('already registered')) {
+        Alert.alert('Erro', 'Este número já tem conta. Use "Entrar".');
+        setLoading(false); return;
       }
-      return caminho;
-    } catch (e) {
-      console.error('Erro ao fazer upload:', e);
-      return null;
+      if (ue) { Alert.alert('Erro', ue.message); setLoading(false); return; }
+      const userId = up?.user?.id;
+      if (!userId) { Alert.alert('Erro', 'Não foi possível criar a conta.'); setLoading(false); return; }
+
+      let urlFrente = null, urlSelfie = null;
+      if (fotoFrente) urlFrente = await uploadFoto(fotoFrente, userId, 'doc_frente');
+      if (fotoSelfie) urlSelfie = await uploadFoto(fotoSelfie, userId, 'selfie_doc');
+
+      await supabase.from('utilizadores').upsert({
+        id: userId, nome_completo: nome, numero_telemovel: numero,
+        tipo: tipo || 'trabalhadora',
+        numero_bi: numDoc || 'TEMP_' + userId.slice(0, 8),
+        data_nascimento: nascimento || '1990-01-01',
+        foto_bi_url: urlFrente, foto_selfie_bi_url: urlSelfie,
+        estado: 'pendente_verificacao',
+        actualizado_em: new Date().toISOString(),
+      }, { onConflict: 'id' });
+
+      await AsyncStorage.setItem('tipoUser', tipo);
+      await AsyncStorage.setItem('codigo_convite_valido', 'true');
+
+      if (tipo === 'empregador') {
+        router.replace('/(tabs)/employer');
+      } else {
+        router.replace('/(tabs)/profile');
+      }
+    } catch {
+      Alert.alert('Erro', 'Sem ligação ao servidor.');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const FotoBox = ({
-    foto, setter, titulo, desc, icone
-  }: {
-    foto: string | null;
-    setter: (uri: string) => void;
-    titulo: string;
-    desc: string;
-    icone: string;
+  const eliminarConta = () => {
+    Alert.alert(
+      '⚠️ Eliminar conta',
+      'Tem a certeza? Esta acção é irreversível.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar', style: 'destructive', onPress: async () => {
+            await supabase.auth.signOut();
+            await AsyncStorage.clear();
+            router.replace('/');
+          }
+        },
+      ]
+    );
+  };
+
+  const FotoBox = ({ foto, setter, titulo, icone }: {
+    foto: string|null; setter:(u:string)=>void; titulo:string; icone:string;
   }) => (
-    <TouchableOpacity style={[styles.fotoBox, foto && styles.fotoBoxPreenchida]} onPress={() => escolherFoto(setter)}>
+    <TouchableOpacity
+      style={[styles.fotoBox, foto && styles.fotoBoxOk]}
+      onPress={() => tirarFoto(setter)}>
       {foto ? (
         <Image source={{ uri: foto }} style={styles.fotoPreview} />
       ) : (
         <View style={styles.fotoPlaceholder}>
           <Text style={styles.fotoIcone}>{icone}</Text>
           <Text style={styles.fotoTitulo}>{titulo}</Text>
-          <Text style={styles.fotoDesc}>{desc}</Text>
-          <View style={styles.fotoBtn}>
-            <Text style={styles.fotoBtnText}>+ {t('adicionar')}</Text>
-          </View>
-        </View>
-      )}
-      {foto && (
-        <View style={styles.fotoEditarBadge}>
-          <Text style={styles.fotoEditarText}>✏️ {t('editar')}</Text>
+          <Text style={styles.fotoAddText}>+ Adicionar</Text>
         </View>
       )}
     </TouchableOpacity>
   );
 
-  const registar = async () => {
-    if (!nome || !telefone || !numeroDocumento || !nascimento) {
-      Alert.alert(t('erro'), t('preencha_campos'));
-      return;
-    }
+  // ─── ETAPA 0: TIPO ────────────────────────────────────
+  if (etapa === 0) {
+    return (
+      <View style={styles.container}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <Text style={styles.backText}>← Voltar</Text>
+        </TouchableOpacity>
+        <Text style={styles.titulo}>Criar conta</Text>
+        <Text style={styles.subtitulo}>Quem é você na plataforma?</Text>
 
-    const codigoUpper = codigoConvite.trim().toUpperCase();
-    if (!CODIGOS_VALIDOS.includes(codigoUpper)) {
-      Alert.alert('❌ ' + t('codigo_invalido'), t('codigo_invalido_desc'));
-      return;
-    }
+        <TouchableOpacity
+          style={[styles.tipoCard, tipo === 'trabalhadora' && styles.tipoCardActivo]}
+          onPress={() => setTipo('trabalhadora')}>
+          <Text style={styles.tipoIcone}>👩</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.tipoNome, tipo === 'trabalhadora' && styles.tipoNomeActivo]}>
+              Sou Trabalhadora
+            </Text>
+            <Text style={styles.tipoDesc}>Encontre emprego doméstico de confiança</Text>
+          </View>
+          {tipo === 'trabalhadora' && <Text style={styles.tipoCheck}>✓</Text>}
+        </TouchableOpacity>
 
-    setLoading(true);
-    try {
-      const numeroCompleto = '258' + telefone;
-      const emailFicticio = `${numeroCompleto}@domesticamoz.app`;
-      const password = codigoUpper + numeroCompleto;
+        <TouchableOpacity
+          style={[styles.tipoCard, tipo === 'empregador' && styles.tipoCardActivo]}
+          onPress={() => setTipo('empregador')}>
+          <Text style={styles.tipoIcone}>🏠</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.tipoNome, tipo === 'empregador' && styles.tipoNomeActivo]}>
+              Sou Empregador
+            </Text>
+            <Text style={styles.tipoDesc}>Encontre a trabalhadora ideal para si</Text>
+          </View>
+          {tipo === 'empregador' && <Text style={styles.tipoCheck}>✓</Text>}
+        </TouchableOpacity>
 
-      let userId: string | null = null;
+        <View style={{ flex: 1 }} />
 
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email: emailFicticio,
-        password: password,
-        options: { data: { telefone: numeroCompleto, codigo_convite: codigoUpper } }
-      });
-
-      if (signUpError && signUpError.message.includes('already registered')) {
-        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-          email: emailFicticio,
-          password: password,
-        });
-        if (signInError) {
-          Alert.alert(t('erro'), t('ja_tem_conta'));
-          setLoading(false);
-          return;
-        }
-        userId = signInData?.user?.id ?? null;
-      } else if (signUpError) {
-        Alert.alert(t('erro'), signUpError.message);
-        setLoading(false);
-        return;
-      } else {
-        userId = signUpData?.user?.id ?? null;
-      }
-
-      if (!userId) {
-        Alert.alert(t('erro'), t('erro_criar_conta'));
-        setLoading(false);
-        return;
-      }
-
-      let urlFrente = null, urlSelfie = null;
-      if (fotoDocumentoFrente) urlFrente = await uploadFoto(fotoDocumentoFrente, userId, 'doc_frente');
-      if (fotoSelfieDocumento) urlSelfie = await uploadFoto(fotoSelfieDocumento, userId, 'selfie_doc');
-
-      const { error: upsertError } = await supabase.from('utilizadores').upsert({
-        id: userId,
-        nome_completo: nome,
-        numero_telemovel: numeroCompleto,
-        tipo: tipo || 'trabalhadora',
-        numero_bi: numeroDocumento,
-        data_nascimento: nascimento,
-        foto_bi_url: urlFrente,
-        foto_selfie_bi_url: urlSelfie,
-        estado: 'pendente_verificacao',
-        actualizado_em: new Date().toISOString(),
-      }, { onConflict: 'id' });
-
-      if (upsertError) {
-        console.error('Erro upsert:', upsertError.message);
-      }
-
-      await AsyncStorage.setItem('tipoUser', tipo);
-      await AsyncStorage.setItem('codigo_convite_valido', 'true');
-
-      Alert.alert('✅ ' + t('conta_criada'), t('conta_criada_desc'), [
-        { text: t('seguinte'), onPress: () => router.replace('/') }
-      ]);
-
-    } catch (e) {
-      Alert.alert(t('erro'), t('sem_ligacao'));
-    }
-    setLoading(false);
-  };
-
-  return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-        <Text style={styles.backText}>← {t('voltar')}</Text>
-      </TouchableOpacity>
-
-      <Text style={styles.title}>{t('criar_conta')}</Text>
-      <Text style={styles.subtitle}>{t('preencha_dados')}</Text>
-
-      {tipo !== '' && (
-        <View style={[styles.tipoBadge, tipo === 'empregador' ? styles.tipoBadgeEmpregador : styles.tipoBadgeTrabalhadora]}>
-          <Text style={[styles.tipoBadgeText, tipo === 'empregador' ? styles.tipoBadgeTextEmpregador : styles.tipoBadgeTextTrabalhadora]}>
-            {tipo === 'trabalhadora' ? '👩 ' + t('registar_como_trabalhadora') : '🏠 ' + t('registar_como_empregador')}
-          </Text>
-        </View>
-      )}
-
-      <Text style={styles.seccaoTitulo}>📸 {t('foto_perfil')}</Text>
-      <FotoBox foto={fotoPerfil} setter={setFotoPerfil} titulo={t('foto_perfil')} desc={t('foto_perfil_desc')} icone="🤳" />
-
-      <Text style={styles.seccaoTitulo}>👤 {t('dados_pessoais')}</Text>
-
-      <Text style={styles.label}>{t('nome_completo')} *</Text>
-      <TextInput style={styles.input} placeholder={t('nome_apelido')} value={nome} onChangeText={setNome} />
-
-      <Text style={styles.label}>{t('numero_telemovel')} *</Text>
-      <View style={styles.phoneRow}>
-        <View style={styles.prefixBox}>
-          <Text style={styles.prefixText}>🇲🇿 +258</Text>
-        </View>
-        <TextInput
-          style={[styles.input, { flex: 1, marginBottom: 0 }]}
-          placeholder="84 XXX XXXX"
-          keyboardType="phone-pad"
-          maxLength={9}
-          value={telefone}
-          onChangeText={setTelefone}
-        />
+        <TouchableOpacity
+          style={[styles.btnPrimario, !tipo && styles.btnDesactivado]}
+          disabled={!tipo}
+          onPress={() => setEtapa(1)}>
+          <Text style={styles.btnPrimarioText}>Continuar</Text>
+        </TouchableOpacity>
       </View>
-      <View style={{ marginBottom: 16 }} />
+    );
+  }
 
-      <Text style={styles.label}>{t('codigo_convite')} *</Text>
-      <TextInput
-        style={styles.input}
-        placeholder={t('codigo_placeholder')}
-        value={codigoConvite}
-        onChangeText={setCodigoConvite}
-        autoCapitalize="characters"
-        autoCorrect={false}
-      />
+  // ─── ETAPA 1: DADOS ───────────────────────────────────
+  if (etapa === 1) {
+    return (
+      <ScrollView contentContainerStyle={styles.scroll}>
+        <TouchableOpacity onPress={() => setEtapa(0)} style={styles.backBtn}>
+          <Text style={styles.backText}>← Voltar</Text>
+        </TouchableOpacity>
+        <Text style={styles.titulo}>Dados pessoais</Text>
+        <Text style={styles.subtitulo}>Preencha os seus dados</Text>
 
-      <Text style={styles.label}>{t('data_nascimento')} *</Text>
-      <TextInput style={styles.input} placeholder="AAAA-MM-DD" value={nascimento} onChangeText={setNascimento} />
+        <Text style={styles.label}>Nome completo *</Text>
+        <TextInput style={styles.input} placeholder="Nome e apelido" value={nome} onChangeText={setNome} />
 
-      <Text style={styles.label}>{t('nacionalidade')}</Text>
-      <View style={styles.chipGrid}>
-        {['Moçambicana', 'Portuguesa', 'Brasileira', 'Sul-africana', 'Zimbabueana', t('outra')].map(n => (
-          <TouchableOpacity key={n} style={[styles.chip, nacionalidade === n && styles.chipActive]}
-            onPress={() => setNacionalidade(n)}>
-            <Text style={[styles.chipText, nacionalidade === n && styles.chipTextActive]}>{n}</Text>
+        <Text style={styles.label}>Número de telemóvel *</Text>
+        <View style={styles.inputRow}>
+          <View style={styles.prefixoBox}>
+            <Text style={styles.prefixo}>🇲🇿 +258</Text>
+          </View>
+          <TextInput
+            style={[styles.input, { flex: 1, marginBottom: 0 }]}
+            placeholder="84 XXX XXXX" keyboardType="phone-pad" maxLength={9}
+            value={telefone} onChangeText={setTelefone}
+          />
+        </View>
+        <View style={{ height: 16 }} />
+
+        <Text style={styles.label}>Palavra-passe (6 dígitos) *</Text>
+        <TextInput
+          style={styles.input} placeholder="• • • • • •"
+          secureTextEntry keyboardType="number-pad" maxLength={6}
+          value={password} onChangeText={setPassword}
+        />
+
+        <Text style={styles.label}>Confirmar palavra-passe *</Text>
+        <TextInput
+          style={styles.input} placeholder="• • • • • •"
+          secureTextEntry keyboardType="number-pad" maxLength={6}
+          value={passwordConf} onChangeText={setPasswordConf}
+        />
+
+        <Text style={styles.label}>Código de convite *</Text>
+        <TextInput
+          style={styles.input} placeholder="Ex: MOZDOM2026"
+          autoCapitalize="characters" value={codigo} onChangeText={setCodigo}
+        />
+
+        <Text style={styles.label}>Data de nascimento</Text>
+        <TextInput style={styles.input} placeholder="AAAA-MM-DD" value={nascimento} onChangeText={setNascimento} />
+
+        <TouchableOpacity style={styles.btnPrimario} onPress={() => setEtapa(2)}>
+          <Text style={styles.btnPrimarioText}>Seguinte</Text>
+        </TouchableOpacity>
+        <View style={{ height: 40 }} />
+      </ScrollView>
+    );
+  }
+
+  // ─── ETAPA 2: DOCUMENTOS ─────────────────────────────
+  return (
+    <ScrollView contentContainerStyle={styles.scroll}>
+      <TouchableOpacity onPress={() => setEtapa(1)} style={styles.backBtn}>
+        <Text style={styles.backText}>← Voltar</Text>
+      </TouchableOpacity>
+      <Text style={styles.titulo}>Documentos e foto</Text>
+      <Text style={styles.subtitulo}>Para verificação de identidade</Text>
+
+      <Text style={styles.label}>Foto de perfil</Text>
+      <FotoBox foto={fotoPerfil} setter={setFotoPerfil} titulo="Selfie do seu rosto" icone="🤳" />
+
+      <Text style={styles.label}>Tipo de documento</Text>
+      <View style={styles.docTipoRow}>
+        {(['bi', 'passaporte'] as const).map(d => (
+          <TouchableOpacity
+            key={d}
+            style={[styles.docTipoBtn, tipoDoc === d && styles.docTipoBtnActivo]}
+            onPress={() => setTipoDoc(d)}>
+            <Text style={[styles.docTipoText, tipoDoc === d && styles.docTipoTextActivo]}>
+              {d === 'bi' ? '🪪 BI' : '📘 Passaporte'}
+            </Text>
           </TouchableOpacity>
         ))}
       </View>
 
-      <Text style={styles.seccaoTitulo}>🪪 {t('documento_identidade')}</Text>
-
-      <Text style={styles.label}>{t('tipo_documento')} *</Text>
-      <View style={styles.tipoDocRow}>
-        <TouchableOpacity
-          style={[styles.tipoDocBtn, tipoDocumento === 'bi' && styles.tipoDocBtnActive]}
-          onPress={() => setTipoDocumento('bi')}>
-          <Text style={[styles.tipoDocText, tipoDocumento === 'bi' && styles.tipoDocTextActive]}>🪪 {t('bi')}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tipoDocBtn, tipoDocumento === 'passaporte' && styles.tipoDocBtnActive]}
-          onPress={() => setTipoDocumento('passaporte')}>
-          <Text style={[styles.tipoDocText, tipoDocumento === 'passaporte' && styles.tipoDocTextActive]}>📘 {t('passaporte')}</Text>
-        </TouchableOpacity>
-      </View>
-
-      <Text style={styles.label}>{tipoDocumento === 'bi' ? t('numero_bi') : t('numero_passaporte')} *</Text>
+      <Text style={styles.label}>{tipoDoc === 'bi' ? 'Número de BI' : 'Número de passaporte'}</Text>
       <TextInput
         style={styles.input}
-        placeholder={tipoDocumento === 'bi' ? 'Ex: 123456789A' : 'Ex: A1234567'}
-        value={numeroDocumento}
-        onChangeText={setNumeroDocumento}
-        autoCapitalize="characters"
+        placeholder={tipoDoc === 'bi' ? 'Ex: 123456789A' : 'Ex: A1234567'}
+        autoCapitalize="characters" value={numDoc} onChangeText={setNumDoc}
       />
 
-      <Text style={styles.label}>{t('validade_documento')}</Text>
-      <TextInput style={styles.input} placeholder="AAAA-MM-DD" value={validadeDocumento} onChangeText={setValidadeDocumento} />
+      <Text style={styles.label}>Validade do documento</Text>
+      <TextInput style={styles.input} placeholder="AAAA-MM-DD" value={validade} onChangeText={setValidade} />
 
-      <Text style={styles.seccaoTitulo}>📷 {t('fotos_documento')}</Text>
-      <Text style={styles.seccaoDesc}>{t('fotos_documento_desc')}</Text>
+      <Text style={styles.label}>{tipoDoc === 'bi' ? 'BI — frente' : 'Passaporte — página principal'}</Text>
+      <FotoBox foto={fotoFrente} setter={setFotoFrente} titulo="Fotografe o documento" icone="🪪" />
 
-      <FotoBox foto={fotoDocumentoFrente} setter={setFotoDocumentoFrente}
-        titulo={tipoDocumento === 'bi' ? t('bi_frente') : t('passaporte_pagina')}
-        desc={t('fotografe_documento')} icone="🪪" />
-
-      {tipoDocumento === 'bi' && (
-        <FotoBox foto={fotoDocumentoVerso} setter={setFotoDocumentoVerso}
-          titulo={t('bi_verso')} desc={t('fotografe_verso')} icone="🔄" />
+      {tipoDoc === 'bi' && (
+        <>
+          <Text style={styles.label}>BI — verso</Text>
+          <FotoBox foto={fotoVerso} setter={setFotoVerso} titulo="Fotografe o verso" icone="🔄" />
+        </>
       )}
 
-      <FotoBox foto={fotoSelfieDocumento} setter={setFotoSelfieDocumento}
-        titulo={t('selfie_com_documento')}
-        desc={t('selfie_desc')} icone="🤳" />
+      <Text style={styles.label}>Selfie com documento visível</Text>
+      <FotoBox foto={fotoSelfie} setter={setFotoSelfie} titulo="Segure o documento perto do rosto" icone="📸" />
 
-      <View style={styles.notaVerificacao}>
-        <Text style={styles.notaVerificacaoTexto}>🔒 {t('nota_privacidade_fotos')}</Text>
+      <View style={styles.notaPriv}>
+        <Text style={styles.notaPrivText}>
+          🔒 As fotos são usadas apenas para verificação e não são partilhadas publicamente.
+        </Text>
       </View>
 
       <TouchableOpacity
-        style={[styles.btn, loading && styles.btnDisabled]}
-        onPress={registar}
-        disabled={loading}>
-        <Text style={styles.btnText}>{loading ? t('a_criar_conta') : t('criar_conta')}</Text>
+        style={[styles.btnPrimario, loading && styles.btnDesactivado]}
+        disabled={loading} onPress={registar}>
+        <Text style={styles.btnPrimarioText}>{loading ? 'A criar conta...' : '✓ Criar conta'}</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => router.push('/(tabs)/explore')} style={styles.linkRow}>
-        <Text style={styles.linkText}>{t('ja_tenho_conta')} {t('entrar')}</Text>
+      <TouchableOpacity style={styles.btnEliminar} onPress={eliminarConta}>
+        <Text style={styles.btnEliminarText}>🗑️ Eliminar conta</Text>
       </TouchableOpacity>
-
-      <View style={{ height: 40 }} />
+      <View style={{ height: 48 }} />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { backgroundColor: '#fff', padding: 24, paddingTop: 60 },
-  backBtn: { marginBottom: 16 },
-  backText: { color: '#1D9E75', fontSize: 16 },
-  title: { fontSize: 28, fontWeight: 'bold', color: '#1D9E75', marginBottom: 8 },
-  subtitle: { fontSize: 14, color: '#888780', marginBottom: 24 },
-  seccaoTitulo: { fontSize: 16, fontWeight: '700', color: '#333', marginTop: 16, marginBottom: 12 },
-  seccaoDesc: { fontSize: 13, color: '#888', marginBottom: 12, lineHeight: 20 },
-  tipoBadge: { borderRadius: 12, padding: 12, marginBottom: 20, borderWidth: 1 },
-  tipoBadgeTrabalhadora: { backgroundColor: '#e8f5f0', borderColor: '#b2dfcf' },
-  tipoBadgeEmpregador: { backgroundColor: '#EBF4FF', borderColor: '#bfdbf7' },
-  tipoBadgeText: { fontSize: 14, fontWeight: '600', textAlign: 'center' },
-  tipoBadgeTextTrabalhadora: { color: '#1D9E75' },
-  tipoBadgeTextEmpregador: { color: '#185FA5' },
-  label: { fontSize: 14, fontWeight: '600', color: '#333', marginBottom: 8 },
-  input: { borderWidth: 1, borderColor: '#D3D1C7', borderRadius: 12, padding: 16, fontSize: 16, marginBottom: 16 },
-  phoneRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
-  prefixBox: { backgroundColor: '#f0f0ea', borderRadius: 12, padding: 16, justifyContent: 'center' },
-  prefixText: { fontSize: 14, color: '#333', fontWeight: '600' },
-  chipGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
-  chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: '#f0f0ea', borderWidth: 1, borderColor: '#e0e0da' },
-  chipActive: { backgroundColor: '#1D9E75', borderColor: '#1D9E75' },
-  chipText: { fontSize: 13, color: '#555' },
-  chipTextActive: { color: '#fff', fontWeight: '600' },
-  tipoDocRow: { gap: 8, marginBottom: 16 },
-  tipoDocBtn: { padding: 14, borderRadius: 12, borderWidth: 1, borderColor: '#D3D1C7', alignItems: 'center', backgroundColor: '#f9f9f7' },
-  tipoDocBtnActive: { backgroundColor: '#1D9E75', borderColor: '#1D9E75' },
-  tipoDocText: { fontSize: 14, fontWeight: '600', color: '#555' },
-  tipoDocTextActive: { color: '#fff' },
-  fotoBox: { borderWidth: 2, borderColor: '#e0e0da', borderRadius: 16, borderStyle: 'dashed', marginBottom: 12, overflow: 'hidden', minHeight: 140 },
-  fotoBoxPreenchida: { borderStyle: 'solid', borderColor: '#1D9E75' },
+  container: { flex: 1, backgroundColor: '#F9FAFB', padding: 24, paddingTop: 72 },
+  scroll: { backgroundColor: '#F9FAFB', padding: 24, paddingTop: 72 },
+  backBtn: { marginBottom: 24 },
+  backText: { color: '#1F8A70', fontSize: 16, fontWeight: '600' },
+  titulo: { fontSize: 26, fontWeight: 'bold', color: '#1F2937', marginBottom: 6 },
+  subtitulo: { fontSize: 15, color: '#6B7280', marginBottom: 28 },
+  label: { fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 8, marginTop: 4 },
+  input: {
+    backgroundColor: '#fff', borderWidth: 1.5, borderColor: '#E5E7EB',
+    borderRadius: 14, padding: 14, fontSize: 15, color: '#1F2937', marginBottom: 16,
+  },
+  inputRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
+  prefixoBox: {
+    backgroundColor: '#fff', borderWidth: 1.5, borderColor: '#E5E7EB',
+    borderRadius: 14, padding: 14, marginRight: 8,
+  },
+  prefixo: { fontSize: 15, color: '#6B7280', fontWeight: '600' },
+  docTipoRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+  docTipoBtn: {
+    flex: 1, padding: 14, borderRadius: 14,
+    borderWidth: 1.5, borderColor: '#E5E7EB',
+    alignItems: 'center', backgroundColor: '#fff',
+  },
+  docTipoBtnActivo: { backgroundColor: '#1F8A70', borderColor: '#1F8A70' },
+  docTipoText: { fontSize: 14, fontWeight: '600', color: '#6B7280' },
+  docTipoTextActivo: { color: '#fff' },
+  fotoBox: {
+    borderWidth: 2, borderColor: '#E5E7EB', borderRadius: 16,
+    borderStyle: 'dashed', marginBottom: 16, overflow: 'hidden', minHeight: 130,
+  },
+  fotoBoxOk: { borderStyle: 'solid', borderColor: '#1F8A70' },
   fotoPlaceholder: { padding: 24, alignItems: 'center' },
-  fotoIcone: { fontSize: 36, marginBottom: 8 },
-  fotoTitulo: { fontSize: 15, fontWeight: '600', color: '#333', marginBottom: 4 },
-  fotoDesc: { fontSize: 12, color: '#888', textAlign: 'center', marginBottom: 12 },
-  fotoBtn: { backgroundColor: '#1D9E75', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
-  fotoBtnText: { color: '#fff', fontSize: 13, fontWeight: '600' },
-  fotoPreview: { width: '100%', height: 180 },
-  fotoEditarBadge: { position: 'absolute', bottom: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
-  fotoEditarText: { color: '#fff', fontSize: 12 },
-  notaVerificacao: { backgroundColor: '#e8f5f0', borderRadius: 12, padding: 14, marginBottom: 16, borderWidth: 1, borderColor: '#b2dfcf' },
-  notaVerificacaoTexto: { fontSize: 13, color: '#1D9E75', lineHeight: 20 },
-  btn: { backgroundColor: '#1D9E75', padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 8 },
-  btnDisabled: { backgroundColor: '#aaa' },
-  btnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  linkRow: { alignItems: 'center', marginTop: 20 },
-  linkText: { color: '#1D9E75', fontSize: 14 },
+  fotoIcone: { fontSize: 32, marginBottom: 8 },
+  fotoTitulo: { fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 4 },
+  fotoAddText: { fontSize: 13, color: '#1F8A70', fontWeight: '600' },
+  fotoPreview: { width: '100%', height: 170 },
+  notaPriv: {
+    backgroundColor: '#ECFDF5', borderRadius: 12, padding: 14,
+    marginBottom: 16, borderWidth: 1, borderColor: '#A7F3D0',
+  },
+  notaPrivText: { fontSize: 13, color: '#065F46', lineHeight: 20 },
+  tipoCard: {
+    flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff',
+    borderRadius: 16, padding: 18, marginBottom: 14,
+    borderWidth: 1.5, borderColor: '#E5E7EB', gap: 14,
+  },
+  tipoCardActivo: { borderColor: '#1F8A70', backgroundColor: '#ECFDF5' },
+  tipoIcone: { fontSize: 32 },
+  tipoNome: { fontSize: 16, fontWeight: '700', color: '#1F2937' },
+  tipoNomeActivo: { color: '#1F8A70' },
+  tipoDesc: { fontSize: 13, color: '#6B7280', marginTop: 2 },
+  tipoCheck: { fontSize: 20, color: '#1F8A70', fontWeight: 'bold' },
+  btnPrimario: {
+    backgroundColor: '#1F8A70', padding: 17, borderRadius: 16,
+    alignItems: 'center', marginTop: 8,
+    shadowColor: '#1F8A70', shadowOpacity: 0.25, shadowRadius: 10, elevation: 4,
+  },
+  btnDesactivado: { backgroundColor: '#9CA3AF' },
+  btnPrimarioText: { color: '#fff', fontSize: 17, fontWeight: '700' },
+  btnEliminar: {
+    padding: 16, borderRadius: 16, alignItems: 'center',
+    marginTop: 12, borderWidth: 1.5, borderColor: '#FCA5A5',
+  },
+  btnEliminarText: { color: '#EF4444', fontSize: 15, fontWeight: '600' },
 });
